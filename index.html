@@ -49,7 +49,7 @@
         .form-group { margin-bottom: 16px; }
         label { display: block; margin-bottom: 5px; font-size: 14px; }
         input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
-        .resumen { background: white; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #eee; }
+        .resumen { display: block; visibility: visible; opacity: 1; width: 100%; background: white; padding: 15px; border-radius: 8px; margin: 16px 0 22px; border: 1px solid #ddd; }
         .resumen h3 { font-size: 15px; margin-bottom: 10px; }
         .item-resumen { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; padding:8px 0; border-bottom:1px solid #eee; font-size:13px; }
         .item-resumen span { flex:1; }
@@ -330,6 +330,17 @@
     </div>
     <div class="contenedor">
         <button class="volver" onclick="irAPantalla1()">← Volver al menú</button>
+
+        <!-- El resumen se muestra al comienzo para que sea visible antes de enviar el pedido. -->
+        <div class="resumen">
+            <h3>Resumen de tu pedido</h3>
+            <div id="lista-pedido"></div>
+            <div class="res-total">
+                <span>Subtotal estimado:</span>
+                <span id="res-total">$ 0,00</span>
+            </div>
+        </div>
+
         <div class="form-group">
             <label>Nombre y Apellido *</label>
             <input type="text" id="nombre">
@@ -352,14 +363,6 @@
                 <option value="transferencia">Transferencia</option>
                 <option value="debito">Débito</option>
             </select>
-        </div>
-        <div class="resumen">
-            <h3>Resumen del pedido</h3>
-            <div id="lista-pedido"></div>
-            <div class="res-total">
-                <span>TOTAL ESTIMADO:</span>
-                <span id="res-total">$ 0,00</span>
-            </div>
         </div>
         <button class="btn-wsp" onclick="enviarWhatsApp()">📤 Enviar por WhatsApp</button>
     </div>
