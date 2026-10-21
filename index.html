@@ -1,253 +1,528 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lácteos La Unión — Pedidos</title>
-<style>
-*{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-body{margin:0;background:#f9f9f9;padding-bottom:100px;color:#222}
-.header{background:#fff;padding:15px;text-align:center;border-bottom:1px solid #ddd}
-.header h1{color:#0066B3;font-size:18px;margin:0}.header p{color:#888;font-size:12px;margin:5px 0 0}
-.categorias{display:flex;overflow-x:auto;gap:8px;padding:10px;background:#fff;position:sticky;top:0;z-index:50}
-.cat-btn{padding:7px 12px;border-radius:15px;border:0;background:#eee;cursor:pointer;font-size:13px;white-space:nowrap}
-.cat-btn.activo{background:#0066B3;color:#fff}
-.contenedor{max-width:600px;margin:0 auto;padding:15px}
-.seccion{margin-bottom:30px;scroll-margin-top:65px}
-.seccion h2{font-size:16px;color:#0066B3;margin:20px 0 10px;padding-bottom:5px;border-bottom:2px solid #F5A623}
-.nota-peso{font-size:12px;color:#777;margin:6px 0 10px}
-.etiqueta-peso{font-size:12px;font-weight:500;color:#F5A623;background:#fff4df;padding:2px 8px;border-radius:12px}
-.producto{background:#fff;padding:12px;margin-bottom:8px;border-radius:8px;border:1px solid #eee}
-.prod-nombre{font-size:14px;font-weight:500;line-height:1.4}
-.prod-precio{font-size:14px;color:#0066B3;font-weight:600;margin:5px 0 10px}
-.fila-inferior{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
-.contador{display:flex;align-items:center;gap:10px}
-.btn-cant{width:34px;height:34px;border-radius:50%;border:1px solid #ccc;background:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
-.cant-num{min-width:28px;text-align:center;font-size:16px}
-select,input{padding:10px;border-radius:6px;border:1px solid #ccc;font-size:14px;background:#fff;max-width:100%}
-.selector-grupo{flex:1;min-width:135px}.selector-grupo label{font-size:12px;color:#666;margin-bottom:4px;display:block}
-.selector-grupo select{width:100%}.seleccionado-texto{font-size:13px;color:green;font-style:italic;min-height:18px;margin-top:4px;font-weight:500}
-.carrito-fijo{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ddd;padding:12px 15px;display:flex;justify-content:space-between;align-items:center;gap:10px;z-index:100;box-shadow:0 -2px 10px #0000000d}
-.total-texto{font-size:12px;color:#777}.total-valor{font-size:20px;font-weight:bold;color:#0066B3}
-.btn-pedir{background:#ccc;color:#fff;border:0;padding:11px 15px;border-radius:8px;font-size:14px;font-weight:bold;cursor:not-allowed}
-.btn-pedir.activo{background:#25D366;cursor:pointer}
-.pantalla{display:none}.pantalla.activa{display:block}
-.volver{background:none;border:0;color:#0066B3;font-size:15px;cursor:pointer;margin:10px 0;padding:0}
-.form-group{margin-bottom:16px}.form-group label{display:block;margin-bottom:5px;font-size:14px}
-.form-group input,.form-group select{width:100%}
-.resumen{background:#fff;padding:15px;border-radius:8px;margin:20px 0;border:1px solid #eee}
-.resumen h3{font-size:15px;margin:0 0 10px}.res-item{display:flex;justify-content:space-between;gap:12px;padding:7px 0;font-size:13px;border-bottom:1px solid #f5f5f5}
-.res-item span:last-child{text-align:right;white-space:nowrap}.res-item.peso span:last-child{color:#F5A623;font-style:italic}
-.res-total{display:flex;justify-content:space-between;gap:12px;padding-top:10px;margin-top:8px;border-top:2px solid #eee;font-weight:bold;font-size:14px}
-.aviso-peso{font-size:12px;color:#b77910;font-style:italic;margin:8px 0;padding:8px;background:#fff8e9;border-radius:4px}
-.btn-wsp{width:100%;background:#25D366;color:#fff;border:0;padding:14px;border-radius:8px;font-size:16px;cursor:pointer;margin-top:10px;font-weight:600}
-@media(max-width:380px){.carrito-fijo{padding:10px}.total-valor{font-size:17px}.btn-pedir{padding:10px;font-size:12px}.prod-nombre{font-size:13px}}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lácteos La Unión — Pedidos</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+        body { background: #f9f9f9; padding-bottom: 100px; }
+        
+        .header { background: white; padding: 15px; text-align: center; border-bottom: 1px solid #ddd; }
+        .header h1 { color: #0066B3; font-size: 18px; }
+        .header p { color: #888; font-size: 12px; margin-top: 5px; }
+        
+        .categorias { display: flex; overflow-x: auto; gap: 8px; padding: 10px; background: white; position: sticky; top: 0; z-index: 50; }
+        .cat-btn { padding: 6px 12px; border-radius: 15px; border: none; background: #eee; cursor: pointer; font-size: 13px; white-space: nowrap; }
+        .cat-btn.activo { background: #0066B3; color: white; }
+        .etiqueta-peso { font-size: 12px; font-weight: 500; color: #F5A623; background: rgba(245, 166, 35, 0.15); padding: 2px 8px; border-radius: 12px; }
+        
+        .contenedor { max-width: 600px; margin: 0 auto; padding: 15px; }
+        
+        .seccion { margin-bottom: 30px; padding-top: 60px; margin-top: -50px; }
+        .seccion h2 { font-size: 16px; color: #0066B3; margin: 20px 0 10px; padding-bottom: 5px; border-bottom: 2px solid #F5A623; }
+        .nota-peso { font-size: 12px; color: #777; margin-bottom: 10px; }
+        
+        .producto { background: white; padding: 12px; margin-bottom: 8px; border-radius: 8px; border: 1px solid #eee; }
+        .prod-nombre { font-size: 14px; font-weight: 500; }
+        .prod-precio { font-size: 14px; color: #0066B3; font-weight: 600; margin: 5px 0 10px; }
+        
+        .fila-inferior { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .contador { display: flex; align-items: center; gap: 8px; }
+        .btn-cant { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #ccc; background: white; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .cant-num { min-width: 36px; text-align: center; font-size: 16px; }
+        select { padding: 6px 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; background: white; min-width: 150px; }
+        select:disabled { background: #f0f0f0; color: #999; cursor: not-allowed; opacity: 0.6; }
+        .selector-grupo { flex: 1; min-width: 140px; }
+        .selector-grupo label { font-size: 12px; color: #666; margin-bottom: 4px; display: block; }
+        .seleccionado-texto { font-size: 13px; color: green; font-style: italic; min-height: 18px; margin-top: 4px; font-weight: 500; }
+        
+        .carrito-fijo { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #ddd; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 100; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); }
+        .total-texto { font-size: 12px; color: #777; }
+        .total-valor { font-size: 20px; font-weight: bold; color: #0066B3; }
+        .btn-pedir { background: #ccc; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: not-allowed; transition: all 0.3s; }
+        .btn-pedir.activo { background: #25D366; cursor: pointer; transform: scale(1.03); }
+        
+        .pantalla { display: none; }
+        .pantalla.activa { display: block; }
+        .volver { background: none; border: none; color: #0066B3; font-size: 15px; cursor: pointer; margin: 10px 0; padding: 0; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; margin-bottom: 5px; font-size: 14px; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .resumen { background: white; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #eee; }
+        .resumen h3 { font-size: 15px; margin-bottom: 10px; }
+        .res-item { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; border-bottom: 1px solid #f5f5f5; }
+        .res-item.peso span:last-child { color: #F5A623; font-style: italic; font-size: 13px; }
+        .res-item:last-child { border-bottom: none; }
+        .res-total { display: flex; justify-content: space-between; padding-top: 10px; margin-top: 8px; border-top: 2px solid #eee; font-weight: bold; font-size: 15px; }
+        .btn-wsp { width: 100%; background: #25D366; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 10px; font-weight: 500; }
+    </style>
 </head>
 <body>
+
 <div class="pantalla activa" id="p1">
-  <div class="header"><h1>🧀 Lácteos La Unión</h1><p>San Lorenzo, Santa Fe — Pedidos por WhatsApp</p></div>
-  <nav class="categorias" aria-label="Categorías">
-    <button class="cat-btn activo" data-cat="quesos-blandos">Quesos Blandos</button>
-    <button class="cat-btn" data-cat="ralladitos">Ralladitos</button>
-    <button class="cat-btn" data-cat="untables">Untables y DDL</button>
-    <button class="cat-btn" data-cat="crema-manteca">Crema y Manteca</button>
-    <button class="cat-btn" data-cat="snacks-crunch">Snacks Crunch</button>
-  </nav>
-  <main class="contenedor" id="catalogo"></main>
-  <div class="carrito-fijo">
-    <div><div class="total-texto">Total de productos con precio fijo</div><div class="total-valor" id="total">$ 0,00</div></div>
-    <button class="btn-pedir" id="btnPedir" disabled>Confirmar pedido</button>
-  </div>
+    <div class="header">
+        <h1>🧀 Lácteos La Unión</h1>
+        <p>San Lorenzo, Santa Fe — Pedidos por WhatsApp</p>
+    </div>
+    <div class="categorias">
+        <button class="cat-btn activo" onclick="irACategoria('quesos-blandos', this)">Quesos Blandos</button>
+        <button class="cat-btn" onclick="irACategoria('ralladitos', this)">Ralladitos</button>
+        <button class="cat-btn" onclick="irACategoria('untables', this)">Untables y DDL</button>
+        <button class="cat-btn" onclick="irACategoria('snacks-crunch', this)">Snacks Crunch</button>
+    </div>
+    <div class="contenedor">
+        <div class="seccion" id="quesos-blandos">
+            <h2>🧀 Quesos Blandos <span class="etiqueta-peso">Se pesa al entregar</span></h2>
+            <p class="nota-peso">👉 Seleccioná la cantidad deseada. El precio final se confirma al pesar el producto.</p>
+            
+            <div class="producto">
+                <div class="prod-nombre">CUARTIROLO TREMBLAY</div>
+                <div class="prod-precio">$ 8.729,30 / kg — Se cobra al pesar</div>
+                <div class="fila-inferior">
+                    <select id="sel_cuarti" onchange="cambiarQueso('cuarti', this.value, 'CUARTIROLO TREMBLAY')">
+                        <option value="0">— Cantidad deseada —</option>
+                        <option value="1">1/4 horma</option>
+                        <option value="2">1/2 horma</option>
+                        <option value="4">1 horma</option>
+                        <option value="8">2 hormas</option>
+                    </select>
+                    <div class="seleccionado-texto" id="txt_cuarti"></div>
+                </div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">CREMOSO TREMBLAY (aprox. 4 kg)</div>
+                <div class="prod-precio">$ 8.981,89 / kg — Se cobra al pesar</div>
+                <div class="fila-inferior">
+                    <select id="sel_cremoso" onchange="cambiarQueso('cremoso', this.value, 'CREMOSO TREMBLAY')">
+                        <option value="0">— Cantidad deseada —</option>
+                        <option value="1">1/4 horma</option>
+                        <option value="2">1/2 horma</option>
+                        <option value="4">1 horma</option>
+                        <option value="8">2 hormas</option>
+                    </select>
+                    <div class="seleccionado-texto" id="txt_cremoso"></div>
+                </div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">PORT SALUT TREMBLAY (aprox. 3,2 kg)</div>
+                <div class="prod-precio">$ 8.998,62 / kg — Se cobra al pesar</div>
+                <div class="fila-inferior">
+                    <select id="sel_portsalut" onchange="cambiarQueso('portsalut', this.value, 'PORT SALUT TREMBLAY')">
+                        <option value="0">— Cantidad deseada —</option>
+                        <option value="1">1/4 horma</option>
+                        <option value="2">1/2 horma</option>
+                        <option value="4">1 horma</option>
+                        <option value="8">2 hormas</option>
+                    </select>
+                    <div class="seleccionado-texto" id="txt_portsalut"></div>
+                </div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">MUZZARELLA TREMBLAY BARRA (aprox. 4 kg)</div>
+                <div class="prod-precio">$ 12.093,51 / kg — Se cobra al pesar</div>
+                <div class="fila-inferior">
+                    <select id="sel_muzzbarra" onchange="cambiarQueso('muzzbarra', this.value, 'MUZZARELLA BARRA')">
+                        <option value="0">— Cantidad deseada —</option>
+                        <option value="2">1/2 barra</option>
+                        <option value="4">1 barra</option>
+                        <option value="8">2 barras</option>
+                    </select>
+                    <div class="seleccionado-texto" id="txt_muzzbarra"></div>
+                </div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">MUZZARELLA TREMBLAY CILINDRO (5 kg completo)</div>
+                <div class="prod-precio">$ 9.193,71 / cilindro completo — Se cobra al pesar</div>
+                <div class="fila-inferior">
+                    <div class="contador">
+                        <button class="btn-cant" onclick="cambiarCilindro(1)">+</button>
+                        <span class="cant-num" id="cant_cilindro">0</span>
+                        <button class="btn-cant" onclick="cambiarCilindro(-1)">−</button>
+                    </div>
+                </div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">QUESO AZUL LA QUESERA (aprox. 2,4 kg)</div>
+                <div class="prod-precio">$ 20.046,08 / kg — Se cobra al pesar</div>
+                <p class="nota-peso" style="margin-top:5px;">Elegí UNA sola opción — valor orientativo</p>
+                <div class="fila-inferior" style="margin-top:5px; flex-wrap:wrap; gap:15px;">
+                    <div class="selector-grupo">
+                        <label>Por monto estimado ($)</label>
+                        <select id="sel_azul_monto" onchange="cambiarAzulMonto(this.value)">
+                            <option value="0">— Elegí —</option>
+                            <option value="1000">$1.000</option>
+                            <option value="1500">$1.500</option>
+                            <option value="2000">$2.000</option>
+                            <option value="2500">$2.500</option>
+                            <option value="3000">$3.000</option>
+                            <option value="5000">$5.000</option>
+                        </select>
+                    </div>
+                    <div class="selector-grupo">
+                        <label>Por peso estimado</label>
+                        <select id="sel_azul_grs" onchange="cambiarAzulPeso(this.value)">
+                            <option value="0">— Elegí —</option>
+                            <option value="100">100 gr</option>
+                            <option value="250">250 gr</option>
+                            <option value="500">500 gr</option>
+                            <option value="1000">1 kg</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="seleccionado-texto" id="txt_azul"></div>
+            </div>
+        </div>
+
+        <div class="seccion" id="ralladitos">
+            <h2>Ralladitos</h2>
+            
+            <div class="producto">
+                <div class="prod-nombre">RALLADO SANCOR × 40gr</div>
+                <div class="prod-precio">$ 1.768,64</div>
+                <div class="fila-inferior">
+                    <div class="contador">
+                        <button class="btn-cant" onclick="cambiarProd('sancor40', 1)">+</button>
+                        <span class="cant-num" id="cant_sancor40">0</span>
+                        <button class="btn-cant" onclick="cambiarProd('sancor40', -1)">−</button>
+                    </div>
+                </div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">RALLADO LA PAULINA × 40gr</div>
+                <div class="prod-precio">$ 1.434,80</div>
+                <div class="fila-inferior">
+                    <div class="contador">
+                        <button class="btn-cant" onclick="cambiarProd('paulina40', 1)">+</button>
+                        <span class="cant-num" id="cant_paulina40">0</span>
+                        <button class="btn-cant" onclick="cambiarProd('paulina40', -1)">−</button>
+                    </div>
+                </div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">RALLADO LA QUESERA × 40gr</div>
+                <div class="prod-precio">$ 866,47</div>
+                <div class="fila-inferior">
+                    <div class="contador">
+                        <button class="btn-cant" onclick="cambiarProd('quesera40', 1)">+</button>
+                        <span class="cant-num" id="cant_quesera40">0</span>
+                        <button class="btn-cant" onclick="cambiarProd('quesera40', -1)">−</button>
+                    </div>
+                </div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">RALLADO LA QUESERA × 150gr</div>
+                <div class="prod-precio">$ 3.197,91</div>
+                <div class="fila-inferior">
+                    <div class="contador">
+                        <button class="btn-cant" onclick="cambiarProd('quesera150', 1)">+</button>
+                        <span class="cant-num" id="cant_quesera150">0</span>
+                        <button class="btn-cant" onclick="cambiarProd('quesera150', -1)">−</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="seccion" id="untables">
+            <h2>Untables y DDL</h2>
+            
+            <div class="producto">
+                <div class="prod-nombre">UNTABLE CLÁSICO × 190gr</div>
+                <div class="prod-precio">$ 1.825,00</div>
+                <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarProd('unt_clas',1)">+</button><span class="cant-num" id="cant_unt_clas">0</span><button class="btn-cant" onclick="cambiarProd('unt_clas',-1)">−</button></div></div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">UNTABLE PORT SALUT × 190gr</div>
+                <div class="prod-precio">$ 1.825,00</div>
+                <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarProd('unt_ps',1)">+</button><span class="cant-num" id="cant_unt_ps">0</span><button class="btn-cant" onclick="cambiarProd('unt_ps',-1)">−</button></div></div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">UNTABLE JAMÓN × 190gr</div>
+                <div class="prod-precio">$ 1.825,00</div>
+                <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarProd('unt_jamon',1)">+</button><span class="cant-num" id="cant_unt_jamon">0</span><button class="btn-cant" onclick="cambiarProd('unt_jamon',-1)">−</button></div></div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">UNTABLE AZUL × 190gr</div>
+                <div class="prod-precio">$ 1.825,00</div>
+                <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarProd('unt_azul',1)">+</button><span class="cant-num" id="cant_unt_azul">0</span><button class="btn-cant" onclick="cambiarProd('unt_azul',-1)">−</button></div></div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">UNTABLE CHEDDAR × 190gr</div>
+                <div class="prod-precio">$ 1.825,00</div>
+                <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarProd('unt_cheddar',1)">+</button><span class="cant-num" id="cant_unt_cheddar">0</span><button class="btn-cant" onclick="cambiarProd('unt_cheddar',-1)">−</button></div></div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">UNTABLE FINAS HIERBAS × 190gr</div>
+                <div class="prod-precio">$ 1.825,00</div>
+                <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarProd('unt_finas',1)">+</button><span class="cant-num" id="cant_unt_finas">0</span><button class="btn-cant" onclick="cambiarProd('unt_finas',-1)">−</button></div></div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">UNTABLE SALAME × 190gr</div>
+                <div class="prod-precio">$ 1.825,00</div>
+                <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarProd('unt_salame',1)">+</button><span class="cant-num" id="cant_unt_salame">0</span><button class="btn-cant" onclick="cambiarProd('unt_salame',-1)">−</button></div></div>
+            </div>
+        </div>
+
+        <div class="seccion" id="snacks-crunch">
+            <h2>Snacks Crunch</h2>
+            
+            <div class="producto">
+                <div class="prod-nombre">PAPITAS CLÁSICAS × 20g</div>
+                <div class="prod-precio">$ 743,75</div>
+                <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarProd('papas_clas_20',1)">+</button><span class="cant-num" id="cant_papas_clas_20">0</span><button class="btn-cant" onclick="cambiarProd('papas_clas_20',-1)">−</button></div></div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">PAPITAS CLÁSICAS × 34g</div>
+                <div class="prod-precio">$ 1.275,00</div>
+                <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarProd('papas_clas_34',1)">+</button><span class="cant-num" id="cant_papas_clas_34">0</span><button class="btn-cant" onclick="cambiarProd('papas_clas_34',-1)">−</button></div></div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">PAPITAS CLÁSICAS × 80g</div>
+                <div class="prod-precio">$ 2.125,00</div>
+                <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarProd('papas_clas_80',1)">+</button><span class="cant-num" id="cant_papas_clas_80">0</span><button class="btn-cant" onclick="cambiarProd('papas_clas_80',-1)">−</button></div></div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">PAPITAS CLÁSICAS × 150g</div>
+                <div class="prod-precio">$ 3.506,25</div>
+                <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarProd('papas_clas_150',1)">+</button><span class="cant-num" id="cant_papas_clas_150">0</span><button class="btn-cant" onclick="cambiarProd('papas_clas_150',-1)">−</button></div></div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">PAPITAS CLÁSICAS × 250g</div>
+                <div class="prod-precio">$ 4.250,00</div>
+                <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarProd('papas_clas_250',1)">+</button><span class="cant-num" id="cant_papas_clas_250">0</span><button class="btn-cant" onclick="cambiarProd('papas_clas_250',-1)">−</button></div></div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">PAPITAS JAMÓN × 90g</div>
+                <div class="prod-precio">$ 2.443,75</div>
+                <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarProd('papas_jamon_90',1)">+</button><span class="cant-num" id="cant_papas_jamon_90">0</span><button class="btn-cant" onclick="cambiarProd('papas_jamon_90',-1)">−</button></div></div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">PAPITAS CREMA Y CEBOLLA × 90g</div>
+                <div class="prod-precio">$ 2.443,75</div>
+                <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarProd('papas_crema_90',1)">+</button><span class="cant-num" id="cant_papas_crema_90">0</span><button class="btn-cant" onclick="cambiarProd('papas_crema_90',-1)">−</button></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="carrito-fijo">
+        <div>
+            <div class="total-texto">Total del pedido</div>
+            <div class="total-valor" id="total">$ 0,00</div>
+        </div>
+        <button class="btn-pedir" id="btnPedir" onclick="irAPantalla2()">Confirmar Pedido</button>
+    </div>
 </div>
+
 <div class="pantalla" id="p2">
-  <div class="header"><h1>Finalizar pedido</h1></div>
-  <div class="contenedor">
-    <button class="volver" id="volver">← Volver al menú</button>
-    <div class="form-group"><label for="nombre">Nombre y apellido *</label><input id="nombre" autocomplete="name" placeholder="Tu nombre completo"></div>
-    <div class="form-group"><label for="telefono">Teléfono *</label><input id="telefono" type="tel" autocomplete="tel" placeholder="Tu número de contacto"></div>
-    <div class="form-group"><label for="correo">Correo electrónico (opcional)</label><input id="correo" type="email" autocomplete="email" placeholder="Tu correo"></div>
-    <div class="form-group"><label for="entrega">Tipo de entrega *</label><select id="entrega"><option value="retiro">Retirar en Santiago del Estero 1047 — Gratis</option><option value="envio">Envío a domicilio — $1.500</option></select></div>
-    <div class="form-group" id="grupoDomicilio" hidden><label for="domicilio">Domicilio de entrega *</label><input id="domicilio" autocomplete="street-address" placeholder="Tu dirección completa"></div>
-    <div class="form-group"><label for="pago">Método de pago *</label><select id="pago"><option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option><option value="debito">Débito</option></select></div>
-    <div class="resumen"><h3>Resumen del pedido</h3><div id="lista-pedido"></div><div class="aviso-peso">⚠️ Los quesos por peso se cobran según el peso real al preparar/entregar el pedido. Los importes de estos productos son orientativos.</div><div class="res-total"><span>Subtotal productos fijos:</span><span id="res-subtotal">$ 0,00</span></div><div class="res-total" id="fila-envio" hidden><span>Envío:</span><span>$ 1.500,00</span></div><div class="res-total" style="font-size:16px;border-top:2px solid #F5A623;padding-top:12px"><span>TOTAL ESTIMADO:</span><span id="res-total">$ 0,00</span></div></div>
-    <button class="btn-wsp" id="enviar">📤 Preparar pedido por WhatsApp</button>
-  </div>
+    <div class="header">
+        <h1>Finalizar Pedido</h1>
+    </div>
+    <div class="contenedor">
+        <button class="volver" onclick="irAPantalla1()">← Volver al menú</button>
+        <div class="form-group">
+            <label>Nombre y Apellido *</label>
+            <input type="text" id="nombre">
+        </div>
+        <div class="form-group">
+            <label>Teléfono *</label>
+            <input type="tel" id="telefono">
+        </div>
+        <div class="form-group">
+            <label>Tipo de entrega *</label>
+            <select id="entrega">
+                <option value="retiro">Retirar en Santiago del Estero 1047 — Gratis</option>
+                <option value="envio">Envío a domicilio — $1.500</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Método de pago *</label>
+            <select id="pago">
+                <option value="efectivo">Efectivo</option>
+                <option value="transferencia">Transferencia</option>
+                <option value="debito">Débito</option>
+            </select>
+        </div>
+        <div class="resumen">
+            <h3>Resumen del pedido</h3>
+            <div id="lista-pedido"></div>
+            <div class="res-total">
+                <span>TOTAL ESTIMADO:</span>
+                <span id="res-total">$ 0,00</span>
+            </div>
+        </div>
+        <button class="btn-wsp" onclick="enviarWhatsApp()">📤 Enviar por WhatsApp</button>
+    </div>
 </div>
+
 <script>
-"use strict";
-const COSTO_ENVIO = 1500;
-// Los productos y sus claves se definen una sola vez para evitar diferencias entre HTML, precios y cantidades.
-const productos = [
- {id:"cuarti",cat:"quesos-blandos",nombre:"CUARTIROLO TREMBLAY × kg",precioKg:8729.30,tipo:"queso",opciones:[["0.25","1/4 horma"],["0.5","1/2 horma"],["1","1 horma"],["2","2 hormas"],["3","3 hormas"]]},
- {id:"portsalut",cat:"quesos-blandos",nombre:"PORT SALUT TREMBLAY (aprox. 3,2 kg) × kg",precioKg:8998.62,tipo:"queso",opciones:[["0.25","1/4 horma"],["0.5","1/2 horma"],["1","1 horma"],["2","2 hormas"],["3","3 hormas"]]},
- {id:"muzzbarra",cat:"quesos-blandos",nombre:"MUZZARELLA TREMBLAY BARRA (aprox. 4 kg) × kg",precioKg:12093.51,tipo:"queso",opciones:[["0.5","1/2 barra"],["1","1 barra"],["2","2 barras"],["3","3 barras"]]},
- {id:"cilindro",cat:"quesos-blandos",nombre:"MUZZARELLA TREMBLAY CILINDRO (5 kg completo) × kg",precioKg:9193.71,tipo:"cilindro"},
- {id:"azul",cat:"quesos-blandos",nombre:"QUESO AZUL LA QUESERA (aprox. 2,4 kg) × kg",precioKg:20046.08,tipo:"azul"},
- {id:"sancor40",cat:"ralladitos",nombre:"RALLADO SANCOR × 40 grs",precio:1768.64},
- {id:"paulina40",cat:"ralladitos",nombre:"RALLADO LA PAULINA × 40 grs",precio:1434.80},
- {id:"quesera40",cat:"ralladitos",nombre:"RALLADO LA QUESERA × 40 grs",precio:866.47},
- {id:"quesera150",cat:"ralladitos",nombre:"RALLADO LA QUESERA × 150 grs",precio:3197.91},
- {id:"unt_clas",cat:"untables",nombre:"Queso untable Tremblay Clásico x 190gr",precio:1822.52},
- {id:"unt_ps",cat:"untables",nombre:"Queso untable Tremblay Port Salut x 190gr",precio:1822.52},
- {id:"unt_jamon",cat:"untables",nombre:"Queso untable Tremblay Jamón x 190gr",precio:1822.52},
- {id:"unt_azul",cat:"untables",nombre:"Queso untable Tremblay Azul x 190gr",precio:1822.52},
- {id:"unt_cheddar",cat:"untables",nombre:"Queso untable Tremblay Cheddar x 190gr",precio:1822.52},
- {id:"unt_finas",cat:"untables",nombre:"Queso untable Tremblay Finas Hierbas x 190gr",precio:1822.52},
- {id:"unt_salame",cat:"untables",nombre:"Queso untable Tremblay Salame x 190gr",precio:1822.52},
- {id:"ddl_tremblay",cat:"untables",nombre:"Dulce de Leche Tremblay",precio:1550},
- {id:"quesocrema_tremblay",cat:"untables",nombre:"Queso Crema Tremblay",precio:2100},
- {id:"manteca100",cat:"crema-manteca",nombre:"MANTECA SANCOR × 100 grs",precio:2020.77},
- {id:"manteca200",cat:"crema-manteca",nombre:"MANTECA SANCOR × 200 grs",precio:3765.93},
- {id:"papas_clas_34",cat:"snacks-crunch",nombre:"PAPITAS FRITAS CLÁSICAS × 34g",precio:1275},
- {id:"papas_clas_80",cat:"snacks-crunch",nombre:"PAPITAS FRITAS CLÁSICAS × 80g",precio:2125},
- {id:"papas_clas_150",cat:"snacks-crunch",nombre:"PAPITAS FRITAS CLÁSICAS × 150g",precio:3506.25},
- {id:"papas_clas_250",cat:"snacks-crunch",nombre:"PAPITAS FRITAS CLÁSICAS × 250g",precio:4250},
- {id:"papas_jamon_90",cat:"snacks-crunch",nombre:"PAPITAS FRITAS JAMÓN × 90g",precio:2443.75},
- {id:"papas_crema_90",cat:"snacks-crunch",nombre:"PAPITAS FRITAS CREMA Y CEBOLLA × 90g",precio:2443.75},
- {id:"mani_pelado",cat:"snacks-crunch",nombre:"MANÍ PELADO × 100g",precio:1593.75}
-];
-const categorias = [
- ["quesos-blandos","🧀 Quesos Blandos"],["ralladitos","Ralladitos"],["untables","Untables y DDL"],
- ["crema-manteca","Crema y Manteca"],["snacks-crunch","Snacks Crunch"]
-];
-const cantidades = {};
-productos.forEach(function(p){ if(p.precio!==undefined){ cantidades[p.id]=0; } });
-const quesos = {};
-let cantidadCilindro=0, quesoAzul=null;
-const $=id=>document.getElementById(id);
-const moneda=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-function tarjeta(p){
- let precio=p.precio!==undefined?moneda(p.precio):moneda(p.precioKg)+" / kg — se cobra al pesar";
- let control="";
- if(p.tipo==="queso"){
-  control=`<select aria-label="Cantidad de ${escapeHtml(p.nombre)}" id="sel_${p.id}"><option value="0">— Cantidad deseada —</option>${p.opciones.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join("")}</select><div class="seleccionado-texto" id="txt_${p.id}"></div>`;
- }else if(p.tipo==="cilindro"){
-  control=`<div class="contador"><button class="btn-cant" data-cilindro="1" aria-label="Agregar cilindro">+</button><span class="cant-num" id="cant_cilindro">0</span><button class="btn-cant" data-cilindro="-1" aria-label="Quitar cilindro">−</button></div>`;
- }else if(p.tipo==="azul"){
-  control=`<p class="nota-peso">Elegí una sola opción — valor orientativo.</p><div class="fila-inferior"><div class="selector-grupo"><label for="sel_azul_monto">Por monto estimado ($)</label><select id="sel_azul_monto"><option value="0">— Elegí —</option>${[1000,1500,2000,2500,3000,5000].map(v=>`<option value="${v}">$${v.toLocaleString("es-AR")}</option>`).join("")}</select></div><div class="selector-grupo"><label for="sel_azul_grs">Por peso estimado</label><select id="sel_azul_grs"><option value="0">— Elegí —</option><option value="100">100 gr</option><option value="250">250 gr</option><option value="500">500 gr</option><option value="1000">1 kg</option></select></div></div><div class="seleccionado-texto" id="txt_azul"></div>`;
- }else{
-  control=`<div class="contador"><button class="btn-cant" data-prod="${p.id}" data-delta="1" aria-label="Agregar ${escapeHtml(p.nombre)}">+</button><span class="cant-num" id="cant_${p.id}">0</span><button class="btn-cant" data-prod="${p.id}" data-delta="-1" aria-label="Quitar ${escapeHtml(p.nombre)}">−</button></div>`;
- }
- return `<article class="producto"><div class="prod-nombre">${escapeHtml(p.nombre)}</div><div class="prod-precio">${precio}</div>${p.tipo==="queso"||p.tipo==="cilindro"||p.tipo==="azul"?'<p class="nota-peso">Precio final a confirmar al pesar el producto.</p>':""}<div class="fila-inferior">${control}</div></article>`;
+// 📦 DATOS
+const PRECIOS = {
+    sancor40: 1768.64, paulina40: 1434.80, quesera40: 866.47, quesera150: 3197.91,
+    unt_clas: 1825, unt_ps: 1825, unt_jamon: 1825, unt_azul: 1825, unt_cheddar: 1825, unt_finas: 1825, unt_salame: 1825,
+    papas_clas_20: 743.75, papas_clas_34: 1275, papas_clas_80: 2125, papas_clas_150: 3506.25, papas_clas_250: 4250,
+    papas_jamon_90: 2443.75, papas_crema_90: 2443.75
+};
+const NOMBRES = {
+    sancor40: 'RALLADO SANCOR × 40gr', paulina40: 'RALLADO LA PAULINA × 40gr', 
+    quesera40: 'RALLADO LA QUESERA × 40gr', quesera150: 'RALLADO LA QUESERA × 150gr',
+    unt_clas: 'UNTABLE CLÁSICO × 190gr', unt_ps: 'UNTABLE PORT SALUT × 190gr',
+    unt_jamon: 'UNTABLE JAMÓN × 190gr', unt_azul: 'UNTABLE AZUL × 190gr',
+    unt_cheddar: 'UNTABLE CHEDDAR × 190gr', unt_finas: 'UNTABLE FINAS HIERBAS × 190gr',
+    unt_salame: 'UNTABLE SALAME × 190gr',
+    papas_clas_20: 'PAPITAS CLÁSICAS × 20g', papas_clas_34: 'PAPITAS CLÁSICAS × 34g',
+    papas_clas_80: 'PAPITAS CLÁSICAS × 80g', papas_clas_150: 'PAPITAS CLÁSICAS × 150g',
+    papas_clas_250: 'PAPITAS CLÁSICAS × 250g', papas_jamon_90: 'PAPITAS JAMÓN × 90g',
+    papas_crema_90: 'PAPITAS CREMA Y CEBOLLA × 90g'
+};
+
+// 🧠 VARIABLES DE ESTADO — SIMPLES Y DIRECTAS
+let cantidades = {};
+for (const clave in PRECIOS) cantidades[clave] = 0;
+let quesosSeleccionados = {}; // { cuarti: {nombre, texto}, cremoso: {...} }
+let cantidadCilindro = 0;
+let datoQuesoAzul = null;
+
+// 🔑 FUNCIÓN CLAVE — Verifica y cambia el estado del botón
+function revisarSiHayAlgoSeleccionado() {
+    // ¿Hay algún producto con cantidad > 0?
+    let hayProductos = false;
+    for (let clave in cantidades) {
+        if (cantidades[clave] > 0) { hayProductos = true; break; }
+    }
+    
+    // ¿Hay algún queso seleccionado?
+    let hayQuesos = Object.keys(quesosSeleccionados).length > 0;
+    
+    // ¿Hay cilindro de mozzarella?
+    let hayCilindro = cantidadCilindro > 0;
+    
+    // ¿Hay queso azul?
+    let hayAzul = datoQuesoAzul !== null;
+    
+    // Decidir si se habilita el botón
+    const boton = document.getElementById('btnPedir');
+    if (hayProductos || hayQuesos || hayCilindro || hayAzul) {
+        boton.classList.add('activo');
+        console.log('✅ Botón HABILITADO');
+    } else {
+        boton.classList.remove('activo');
+        console.log('❌ Botón DESHABILITADO');
+    }
 }
-function renderCatalogo(){
- $("catalogo").innerHTML=categorias.map(([id,titulo])=>{
- const lista=productos.filter(p=>p.cat===id);
- return `<section class="seccion" id="${id}"><h2>${titulo}${id==="quesos-blandos"?' <span class="etiqueta-peso">Se pesa al entregar</span>':""}</h2>${id==="quesos-blandos"?'<p class="nota-peso">Elegí la presentación deseada. El importe final de los quesos se confirma al pesarlos.</p>':""}${lista.map(tarjeta).join("")}</section>`;
- }).join("");
+
+// 📝 Cambios en los selectores de quesos blandos
+const textosQuesos = {
+    '1': '1/4 horma', '2': '1/2 horma', '4': '1 horma', '8': '2 hormas',
+    '2-barra': '1/2 barra', '4-barra': '1 barra', '8-barra': '2 barras'
+};
+
+function cambiarQueso(clave, valor, nombre) {
+    const elTexto = document.getElementById(`txt_${clave}`);
+    
+    if (valor !== "0") {
+        let textoMostrar = textosQuesos[valor] || valor;
+        quesosSeleccionados[clave] = { nombre: nombre, texto: textoMostrar };
+        elTexto.textContent = `✅ ${textoMostrar}`;
+        console.log(`🧀 Seleccionado: ${nombre} → ${textoMostrar}`);
+    } else {
+        delete quesosSeleccionados[clave];
+        elTexto.textContent = "";
+        console.log(`🧀 Deseleccionado: ${nombre}`);
+    }
+    
+    revisarSiHayAlgoSeleccionado(); // ← ¡ESTO ES LO IMPORTANTÍSIMO!
 }
-function haySeleccion(){
- return Object.values(cantidades).some(n=>n>0)||Object.keys(quesos).length>0||cantidadCilindro>0||quesoAzul!==null;
+
+// 🧀 Cilindro de mozzarella
+function cambiarCilindro(cuanto) {
+    cantidadCilindro = Math.max(0, cantidadCilindro + cuanto);
+    document.getElementById('cant_cilindro').textContent = cantidadCilindro;
+    revisarSiHayAlgoSeleccionado();
 }
-function revisarBoton(){
- const activo=haySeleccion();$("btnPedir").disabled=!activo;$("btnPedir").classList.toggle("activo",activo);
+
+// 🧀 Queso Azul
+function cambiarAzulMonto(valor) {
+    const selPeso = document.getElementById('sel_azul_grs');
+    if (valor !== "0") {
+        selPeso.value = "0";
+        selPeso.disabled = true;
+        datoQuesoAzul = { tipo: 'monto', valor: parseInt(valor) };
+        document.getElementById('txt_azul').textContent = `✅ ~$${valor}`;
+    } else {
+        selPeso.disabled = false;
+        datoQuesoAzul = null;
+        document.getElementById('txt_azul').textContent = "";
+    }
+    revisarSiHayAlgoSeleccionado();
 }
-function actualizarTotal(){
- const total=productos.reduce((s,p)=>s+(p.precio!==undefined?(cantidades[p.id]||0)*p.precio:0),0);
- $("total").textContent=moneda(total);revisarBoton();
+
+function cambiarAzulPeso(valor) {
+    const selMonto = document.getElementById('sel_azul_monto');
+    if (valor !== "0") {
+        selMonto.value = "0";
+        selMonto.disabled = true;
+        datoQuesoAzul = { tipo: 'peso', gramos: parseInt(valor) };
+        document.getElementById('txt_azul').textContent = `✅ ~${valor} gr`;
+    } else {
+        selMonto.disabled = false;
+        datoQuesoAzul = null;
+        document.getElementById('txt_azul').textContent = "";
+    }
+    revisarSiHayAlgoSeleccionado();
 }
-function cambiarProd(id,delta){
- if(!Object.prototype.hasOwnProperty.call(cantidades,id))return;
- cantidades[id]=Math.max(0,(Number(cantidades[id])||0)+delta);
- $("cant_"+id).textContent=cantidades[id];actualizarTotal();
+
+// 📦 Productos con precio fijo
+function cambiarProd(clave, delta) {
+    cantidades[clave] = Math.max(0, cantidades[clave] + delta);
+    document.getElementById(`cant_${clave}`).textContent = cantidades[clave];
+    actualizarTotal();
+    revisarSiHayAlgoSeleccionado();
 }
-function actualizarResumen(){
- const lista=$("lista-pedido");lista.innerHTML="";
- let subtotal=0;
- function item(nombre,detalle,esPeso=false){
-  const div=document.createElement("div");div.className="res-item"+(esPeso?" peso":"");
-  const a=document.createElement("span"),b=document.createElement("span");a.textContent=nombre;b.textContent=detalle;div.appendChild(a);div.appendChild(b);lista.appendChild(div);
- }
- const pesos=productos.filter(p=>["queso","cilindro","azul"].includes(p.tipo));
- const seleccionPeso=pesos.some(p=>p.tipo==="queso"?quesos[p.id]:p.tipo==="cilindro"?cantidadCilindro>0:quesoAzul);
- if(seleccionPeso){
-  const aviso=document.createElement("p");aviso.className="nota-peso";aviso.textContent="🧀 Quesos por peso — importe final a confirmar:";lista.appendChild(aviso);
-  pesos.forEach(p=>{
-   if(p.tipo==="queso"&&quesos[p.id])item(p.nombre,quesos[p.id],true);
-   if(p.tipo==="cilindro"&&cantidadCilindro>0)item(p.nombre,`${cantidadCilindro} × cilindro`,true);
-   if(p.tipo==="azul"&&quesoAzul)item(p.nombre,quesoAzul.tipo==="monto"?`aprox. $${quesoAzul.valor.toLocaleString("es-AR")}`:`aprox. ${quesoAzul.gramos} g`,true);
-  });
- }
- productos.filter(p=>p.precio!==undefined&&cantidades[p.id]>0).forEach(p=>{
-  const importe=cantidades[p.id]*p.precio;subtotal+=importe;item(`${cantidades[p.id]} × ${p.nombre}`,moneda(importe));
- });
- const envio=$("entrega").value==="envio",total=subtotal+(envio?COSTO_ENVIO:0);
- $("res-subtotal").textContent=moneda(subtotal);$("fila-envio").hidden=!envio;$("res-total").textContent=moneda(total);
+
+function actualizarTotal() {
+    let total = 0;
+    for (let clave in cantidades) {
+        total += cantidades[clave] * (PRECIOS[clave] || 0);
+    }
+    document.getElementById('total').textContent = '$ ' + total.toFixed(2).replace('.', ',');
 }
-function irAPantalla2(){
- if(!haySeleccion()){alert("Primero agregá al menos un producto al pedido.");return;}
- $("p1").classList.remove("activa");$("p2").classList.add("activa");actualizarResumen();window.scrollTo(0,0);
+
+// 📱 Navegación
+function irACategoria(id, btn) {
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('activo'));
+    btn.classList.add('activo');
+    document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
 }
-function irAPantalla1(){$("p2").classList.remove("activa");$("p1").classList.add("activa");window.scrollTo(0,0);}
-$("catalogo").addEventListener("click",e=>{
- const btn=e.target.closest("button");if(!btn)return;
- if(btn.dataset.prod)cambiarProd(btn.dataset.prod,Number(btn.dataset.delta));
- if(btn.dataset.cilindro){cantidadCilindro=Math.max(0,cantidadCilindro+Number(btn.dataset.cilindro));$("cant_cilindro").textContent=cantidadCilindro;revisarBoton();}
-});
-$("catalogo").addEventListener("change",e=>{
- const el=e.target;
- if(el.id.startsWith("sel_")&&el.id!=="sel_azul_monto"&&el.id!=="sel_azul_grs"){
-  const p=productos.find(x=>x.id===el.id.slice(4));if(!p)return;
-  if(el.value==="0"){delete quesos[p.id];$("txt_"+p.id).textContent="";}
-  else{const opcion=p.opciones.find(o=>o[0]===el.value);quesos[p.id]=opcion?opcion[1]:el.value;$("txt_"+p.id).textContent="✅ "+quesos[p.id];}
-  revisarBoton();
- }
- if(el.id==="sel_azul_monto"){
-  const peso=$("sel_azul_grs");
-  if(el.value!=="0"){peso.value="0";peso.disabled=true;quesoAzul={tipo:"monto",valor:Number(el.value)};$("txt_azul").textContent="✅ aprox. "+moneda(Number(el.value));}
-  else{peso.disabled=false;quesoAzul=null;$("txt_azul").textContent="";}
-  revisarBoton();
- }
- if(el.id==="sel_azul_grs"){
-  const monto=$("sel_azul_monto");
-  if(el.value!=="0"){monto.value="0";monto.disabled=true;quesoAzul={tipo:"peso",gramos:Number(el.value)};$("txt_azul").textContent="✅ aprox. "+el.value+" g";}
-  else{monto.disabled=false;quesoAzul=null;$("txt_azul").textContent="";}
-  revisarBoton();
- }
-});
-document.querySelectorAll(".cat-btn").forEach(btn=>btn.addEventListener("click",()=>{
- document.querySelectorAll(".cat-btn").forEach(b=>b.classList.toggle("activo",b===btn));
- $(btn.dataset.cat).scrollIntoView({behavior:"smooth",block:"start"});
-}));
-$("btnPedir").addEventListener("click",irAPantalla2);
-$("volver").addEventListener("click",irAPantalla1);
-$("entrega").addEventListener("change",()=>{
- const envio=$("entrega").value==="envio";$("grupoDomicilio").hidden=!envio;$("fila-envio").hidden=!envio;$("domicilio").required=envio;actualizarResumen();
-});
-$("enviar").addEventListener("click",()=>{
- const nombre=$("nombre").value.trim(),telefono=$("telefono").value.trim(),correo=$("correo").value.trim();
- const entrega=$("entrega").value,domicilio=$("domicilio").value.trim(),pago=$("pago").value;
- if(!nombre||!telefono){alert("Por favor completá tu nombre y teléfono.");return;}
- if(entrega==="envio"&&!domicilio){alert("Por favor completá tu domicilio de entrega.");return;}
- actualizarResumen();
- const lineas=["🛒 *NUEVO PEDIDO - LÁCTEOS LA UNIÓN*","",`*Cliente:* ${nombre}`,`*Teléfono:* ${telefono}`];
- if(correo)lineas.push(`*Correo:* ${correo}`);
- lineas.push(`*Entrega:* ${entrega==="envio"?"Envío a domicilio":"Retiro en Santiago del Estero 1047"}`);
- if(entrega==="envio")lineas.push(`*Domicilio:* ${domicilio}`);
- lineas.push(`*Pago:* ${pago}`,"","*PRODUCTOS:*");
- productos.filter(p=>p.precio!==undefined&&cantidades[p.id]>0).forEach(p=>lineas.push(`• ${cantidades[p.id]} × ${p.nombre} — ${moneda(cantidades[p.id]*p.precio)}`));
- productos.forEach(p=>{
-  if(p.tipo==="queso"&&quesos[p.id])lineas.push(`• ${p.nombre}: ${quesos[p.id]} (se cobra al pesar)`);
-  if(p.tipo==="cilindro"&&cantidadCilindro>0)lineas.push(`• ${p.nombre}: ${cantidadCilindro} × cilindro (se cobra al pesar)`);
-  if(p.tipo==="azul"&&quesoAzul)lineas.push(`• ${p.nombre}: ${quesoAzul.tipo==="monto"?"monto aprox. "+moneda(quesoAzul.valor):"peso aprox. "+quesoAzul.gramos+" g"} (se cobra al pesar)`);
- });
- const subtotal=productos.reduce((s,p)=>s+(p.precio!==undefined?(cantidades[p.id]||0)*p.precio:0),0);
- lineas.push("",`*Subtotal productos fijos:* ${moneda(subtotal)}`);
- if(entrega==="envio")lineas.push(`*Envío:* ${moneda(COSTO_ENVIO)}`);
- lineas.push(`*TOTAL ESTIMADO:* ${moneda(subtotal+(entrega==="envio"?COSTO_ENVIO:0))}`,"","Los productos por peso se cobran según el peso real.");
- // Abre WhatsApp con el mensaje preparado; el usuario elige el contacto de destino.
- const url="https://wa.me/?text="+encodeURIComponent(lineas.join("\n"));
- window.open(url,"_blank","noopener,noreferrer");
-});
-try {
- renderCatalogo();
- actualizarTotal();
-} catch(error) {
- console.error("Error al cargar el catálogo:", error);
- $("catalogo").innerHTML = '<p style="padding:16px;background:#fff;border-radius:8px">No se pudo cargar el catálogo en este navegador. Actualizá la página o abrila con Chrome/Safari actualizado.</p>';
+
+function irAPantalla2() {
+    const boton = document.getElementById('btnPedir');
+    if (!boton.classList.contains('activo')) {
+        alert('⚠️ Primero seleccioná al menos un producto');
+        return;
+    }
+    document.getElementById('p1').classList.remove('activa');
+    document.getElementById('p2').classList.add('activa');
+    window.scrollTo(0, 0);
 }
+
+function irAPantalla1() {
+    document.getElementById('p2').classList.remove('activa');
+    document.getElementById('p1').classList.add('activa');
+}
+
+function enviarWhatsApp() {
+    const nombre = document.getElementById('nombre').value;
+    const telefono = document.getElementById('telefono').value;
+    if (!nombre || !telefono) {
+        alert('Completá nombre y teléfono');
+        return;
+    }
+    alert('✅ ¡Pedido listo! En un código completo iría a WhatsApp');
+}
+
+// 🚀 Inicio
+console.log('🚀 Página cargada — revisando estado inicial del botón');
+revisarSiHayAlgoSeleccionado();
 </script>
 </body>
 </html>
