@@ -51,11 +51,22 @@
         input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
         .resumen { background: white; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #eee; }
         .resumen h3 { font-size: 15px; margin-bottom: 10px; }
+        .item-resumen { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; padding:8px 0; border-bottom:1px solid #eee; font-size:13px; }
+        .item-resumen span { flex:1; }
+        .item-resumen strong { white-space:nowrap; text-align:right; }
+        .resumen-vacio { color:#777; font-size:13px; padding:8px 0; }
         .res-item { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; border-bottom: 1px solid #f5f5f5; }
         .res-item.peso span:last-child { color: #F5A623; font-style: italic; font-size: 13px; }
         .res-item:last-child { border-bottom: none; }
         .res-total { display: flex; justify-content: space-between; padding-top: 10px; margin-top: 8px; border-top: 2px solid #eee; font-weight: bold; font-size: 15px; }
         .btn-wsp { width: 100%; background: #25D366; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 10px; font-weight: 500; }
+
+        .aviso-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.48); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 1000; }
+        .aviso-overlay.visible { display: flex; }
+        .aviso-caja { width: 100%; max-width: 360px; background: #fff; border-radius: 14px; padding: 22px; box-shadow: 0 12px 36px rgba(0,0,0,.25); text-align: center; }
+        .aviso-caja h3 { color: #0066B3; font-size: 18px; margin-bottom: 10px; }
+        .aviso-caja p { color: #444; font-size: 14px; line-height: 1.5; white-space: pre-line; margin-bottom: 18px; }
+        .aviso-caja button { border: 0; border-radius: 8px; background: #0066B3; color: #fff; padding: 11px 24px; font-size: 15px; font-weight: 600; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -354,6 +365,14 @@
     </div>
 </div>
 
+<div class="aviso-overlay" id="avisoOverlay" role="dialog" aria-modal="true" aria-labelledby="avisoTitulo">
+    <div class="aviso-caja">
+        <h3 id="avisoTitulo">Lácteos La Unión</h3>
+        <p id="avisoTexto"></p>
+        <button type="button" onclick="cerrarAviso()">Aceptar</button>
+    </div>
+</div>
+
 <script>
 // 📦 DATOS
 const PRECIOS = {
@@ -494,12 +513,49 @@ function irACategoria(id, btn) {
     document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
 }
 
+function actualizarResumen() {
+    const lista = document.getElementById('lista-pedido');
+    const totalEl = document.getElementById('res-total');
+    if (!lista || !totalEl) return;
+
+    const lineas = [];
+    let subtotal = 0;
+
+    for (const clave in cantidades) {
+        const cantidad = cantidades[clave] || 0;
+        if (cantidad > 0) {
+            const importe = cantidad * (PRECIOS[clave] || 0);
+            subtotal += importe;
+            lineas.push(`<div class="item-resumen"><span>${cantidad} × ${NOMBRES[clave]}</span><strong>${formatoMoneda(importe)}</strong></div>`);
+        }
+    }
+    for (const clave in quesosSeleccionados) {
+        const item = quesosSeleccionados[clave];
+        lineas.push(`<div class="item-resumen"><span>${item.nombre}: ${item.texto}</span><strong>Se cobra al pesar</strong></div>`);
+    }
+    if (cantidadCilindro > 0) {
+        lineas.push(`<div class="item-resumen"><span>MOZZARELLA CILINDRO × ${cantidadCilindro}</span><strong>Se cobra al pesar</strong></div>`);
+    }
+    if (datoQuesoAzul) {
+        const detalle = datoQuesoAzul.tipo === 'monto'
+            ? `monto aproximado ${formatoMoneda(datoQuesoAzul.valor)}`
+            : `peso aproximado ${datoQuesoAzul.gramos} g`;
+        lineas.push(`<div class="item-resumen"><span>QUESO AZUL: ${detalle}</span><strong>Se cobra al pesar</strong></div>`);
+    }
+
+    lista.innerHTML = lineas.length
+        ? lineas.join('')
+        : '<p class="resumen-vacio">Todavía no seleccionaste productos.</p>';
+    totalEl.textContent = formatoMoneda(subtotal);
+}
+
 function irAPantalla2() {
     const boton = document.getElementById('btnPedir');
     if (!boton.classList.contains('activo')) {
-        alert('⚠️ Primero seleccioná al menos un producto');
+        mostrarAviso('Primero seleccioná al menos un producto.');
         return;
     }
+    actualizarResumen();
     document.getElementById('p1').classList.remove('activa');
     document.getElementById('p2').classList.add('activa');
     window.scrollTo(0, 0);
@@ -514,10 +570,58 @@ function enviarWhatsApp() {
     const nombre = document.getElementById('nombre').value;
     const telefono = document.getElementById('telefono').value;
     if (!nombre || !telefono) {
-        alert('Completá nombre y teléfono');
+        mostrarAviso('Completá nombre y teléfono para continuar.');
         return;
     }
-    alert('✅ ¡Pedido listo! En un código completo iría a WhatsApp');
+    const lineas = [
+        '🛒 *PEDIDO — LÁCTEOS LA UNIÓN*',
+        '',
+        `*Nombre:* ${nombre.trim()}`,
+        `*Teléfono:* ${telefono.trim()}`,
+        '',
+        '*PRODUCTOS:*'
+    ];
+
+    for (const clave in cantidades) {
+        const cantidad = cantidades[clave] || 0;
+        if (cantidad > 0) {
+            lineas.push(`• ${cantidad} × ${NOMBRES[clave]} — ${formatoMoneda((PRECIOS[clave] || 0) * cantidad)}`);
+        }
+    }
+    for (const clave in quesosSeleccionados) {
+        const item = quesosSeleccionados[clave];
+        lineas.push(`• ${item.nombre}: ${item.texto} (se cobra según el peso real)`);
+    }
+    if (cantidadCilindro > 0) {
+        lineas.push(`• MOZZARELLA CILINDRO: ${cantidadCilindro} unidad(es) (se cobra según el peso real)`);
+    }
+    if (datoQuesoAzul) {
+        const detalle = datoQuesoAzul.tipo === 'monto'
+            ? `monto aproximado $${datoQuesoAzul.valor}`
+            : `peso aproximado ${datoQuesoAzul.gramos} g`;
+        lineas.push(`• QUESO AZUL: ${detalle} (se cobra según el peso real)`);
+    }
+
+    const subtotal = Object.keys(cantidades).reduce((suma, clave) => suma + (cantidades[clave] || 0) * (PRECIOS[clave] || 0), 0);
+    lineas.push('', `*Subtotal de productos con precio fijo: ${formatoMoneda(subtotal)}*`, '', 'Los productos por peso se cobran según el peso real.');
+
+    // Formato internacional de WhatsApp para el número argentino indicado.
+    const numeroWhatsApp = '5493412663345';
+    const urlWhatsApp = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(lineas.join('\n'))}`;
+    window.location.href = urlWhatsApp;
+}
+
+function formatoMoneda(valor) {
+    return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(Math.round(valor * 100) / 100);
+}
+
+// Avisos dentro de la página: evita los cuadros nativos del navegador que pueden mostrar la dirección web.
+function mostrarAviso(mensaje) {
+    document.getElementById('avisoTexto').textContent = mensaje;
+    document.getElementById('avisoOverlay').classList.add('visible');
+}
+function cerrarAviso() {
+    document.getElementById('avisoOverlay').classList.remove('visible');
 }
 
 // 🚀 Inicio
