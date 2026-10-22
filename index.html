@@ -70,6 +70,7 @@
 
     <div class="categorias">
         <button class="cat-btn activo" onclick="irACategoria('quesos-blandos', this)">Quesos Blandos</button>
+        <button class="cat-btn" onclick="irACategoria('quesos-porcion', this)">Quesos por porción</button>
         <button class="cat-btn" onclick="irACategoria('ralladitos', this)">Ralladitos</button>
         <button class="cat-btn" onclick="irACategoria('untables', this)">Untables y DDL</button>
         <button class="cat-btn" onclick="irACategoria('snacks-crunch', this)">Snacks Crunch</button>
@@ -152,6 +153,13 @@
                 </div>
             </div>
 
+
+        </div>
+
+        <!-- ===== QUESOS POR PORCIÓN ===== -->
+        <div class="seccion" id="quesos-porcion">
+            <h2>Quesos por porción</h2>
+            <p class="nota-peso">👉 Elegí la porción por monto o por peso estimado. El valor final se confirma al pesar.</p>
             <div class="producto">
                 <div class="prod-nombre">QUESO AZUL LA QUESERA (aprox. 2,4 kg)</div>
                 <div class="prod-precio">$ 20.046,08 / kg — Se cobra al pesar</div>
@@ -236,40 +244,40 @@
 
         <!-- ===== UNTABLES ===== -->
         <div class="seccion" id="untables">
-            <h2>Untables y Dulce De Leche</h2>
+            <h2>Untables y Dulce de Leche</h2>
             
             <div class="producto">
-                <div class="prod-nombre">UNTABLE TREMBLAY CLÁSICO × 190gr</div>
+                <div class="prod-nombre">UNTABLE CLÁSICO TREMBLAY × 190gr</div>
                 <div class="prod-precio">$ 1.825,00</div>
                 <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarCant('unt_clas',1)">+</button><span class="cant-num" id="cant_unt_clas">0</span><button class="btn-cant" onclick="cambiarCant('unt_clas',-1)">−</button></div></div>
             </div>
             <div class="producto">
-                <div class="prod-nombre">UNTABLE TREMBLAY PORT SALUT × 190gr</div>
+                <div class="prod-nombre">UNTABLE PORT SALUT TREMBLAY × 190gr</div>
                 <div class="prod-precio">$ 1.825,00</div>
                 <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarCant('unt_ps',1)">+</button><span class="cant-num" id="cant_unt_ps">0</span><button class="btn-cant" onclick="cambiarCant('unt_ps',-1)">−</button></div></div>
             </div>
             <div class="producto">
-                <div class="prod-nombre">UNTABLE TREMBLAY JAMÓN × 190gr</div>
+                <div class="prod-nombre">UNTABLE JAMÓN TREMBLAY × 190gr</div>
                 <div class="prod-precio">$ 1.825,00</div>
                 <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarCant('unt_jamon',1)">+</button><span class="cant-num" id="cant_unt_jamon">0</span><button class="btn-cant" onclick="cambiarCant('unt_jamon',-1)">−</button></div></div>
             </div>
             <div class="producto">
-                <div class="prod-nombre">UNTABLE TREMBLAY AZUL × 190gr</div>
+                <div class="prod-nombre">UNTABLE AZUL TREMBLAY × 190gr</div>
                 <div class="prod-precio">$ 1.825,00</div>
                 <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarCant('unt_azul',1)">+</button><span class="cant-num" id="cant_unt_azul">0</span><button class="btn-cant" onclick="cambiarCant('unt_azul',-1)">−</button></div></div>
             </div>
             <div class="producto">
-                <div class="prod-nombre">UNTABLE TREMBLAY CHEDDAR × 190gr</div>
+                <div class="prod-nombre">UNTABLE CHEDDAR TREMBLAY × 190gr</div>
                 <div class="prod-precio">$ 1.825,00</div>
                 <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarCant('unt_cheddar',1)">+</button><span class="cant-num" id="cant_unt_cheddar">0</span><button class="btn-cant" onclick="cambiarCant('unt_cheddar',-1)">−</button></div></div>
             </div>
             <div class="producto">
-                <div class="prod-nombre">UNTABLE TREMBLAY FINAS HIERBAS × 190gr</div>
+                <div class="prod-nombre">UNTABLE FINAS HIERBAS TREMBLAY × 190gr</div>
                 <div class="prod-precio">$ 1.825,00</div>
                 <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarCant('unt_finas',1)">+</button><span class="cant-num" id="cant_unt_finas">0</span><button class="btn-cant" onclick="cambiarCant('unt_finas',-1)">−</button></div></div>
             </div>
             <div class="producto">
-                <div class="prod-nombre">UNTABLE TREMBLAY SALAME × 190gr</div>
+                <div class="prod-nombre">UNTABLE SALAME TREMBLAY × 190gr</div>
                 <div class="prod-precio">$ 1.825,00</div>
                 <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarCant('unt_salame',1)">+</button><span class="cant-num" id="cant_unt_salame">0</span><button class="btn-cant" onclick="cambiarCant('unt_salame',-1)">−</button></div></div>
             </div>
@@ -405,10 +413,10 @@ const PRECIOS = {
 const NOMBRES = {
     sancor40: 'RALLADO SANCOR × 40gr', paulina40: 'RALLADO LA PAULINA × 40gr', 
     quesera40: 'RALLADO LA QUESERA × 40gr', quesera150: 'RALLADO LA QUESERA × 150gr',
-    unt_clas: 'UNTABLE CLÁSICO × 190gr', unt_ps: 'UNTABLE PORT SALUT × 190gr',
-    unt_jamon: 'UNTABLE JAMÓN × 190gr', unt_azul: 'UNTABLE AZUL × 190gr',
-    unt_cheddar: 'UNTABLE CHEDDAR × 190gr', unt_finas: 'UNTABLE FINAS HIERBAS × 190gr',
-    unt_salame: 'UNTABLE SALAME × 190gr',
+    unt_clas: 'UNTABLE CLÁSICO TREMBLAY × 190gr', unt_ps: 'UNTABLE PORT SALUT TREMBLAY × 190gr',
+    unt_jamon: 'UNTABLE JAMÓN TREMBLAY × 190gr', unt_azul: 'UNTABLE AZUL TREMBLAY × 190gr',
+    unt_cheddar: 'UNTABLE CHEDDAR TREMBLAY × 190gr', unt_finas: 'UNTABLE FINAS HIERBAS TREMBLAY × 190gr',
+    unt_salame: 'UNTABLE SALAME TREMBLAY × 190gr',
     papas_clas_20: 'PAPITAS CLÁSICAS × 20g', papas_clas_34: 'PAPITAS CLÁSICAS × 34g',
     papas_clas_80: 'PAPITAS CLÁSICAS × 80g', papas_clas_150: 'PAPITAS CLÁSICAS × 150g',
     papas_clas_250: 'PAPITAS CLÁSICAS × 250g', papas_jamon_90: 'PAPITAS JAMÓN × 90g',
