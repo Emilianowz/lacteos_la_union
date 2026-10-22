@@ -57,6 +57,13 @@
         .res-total { display: flex; justify-content: space-between; padding-top: 10px; margin-top: 8px; border-top: 2px solid #eee; font-weight: bold; font-size: 15px; }
         #campoDomicilio[hidden], #fila-envio[hidden] { display: none !important; }
         .btn-wsp { width: 100%; background: #25D366; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 10px; font-weight: 500; }
+        .aviso-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 1000; }
+        .aviso-overlay[hidden] { display: none !important; }
+        .aviso-caja { width: 100%; max-width: 360px; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,.25); }
+        .aviso-encabezado { background: #0066B3; color: #fff; padding: 16px 18px; font-size: 17px; font-weight: 700; }
+        .aviso-mensaje { padding: 20px 18px; color: #333; font-size: 15px; line-height: 1.45; }
+        .aviso-acciones { padding: 0 18px 18px; text-align: right; }
+        .aviso-boton { border: 0; border-radius: 8px; padding: 10px 18px; color: #fff; background: #0066B3; font-size: 14px; font-weight: 600; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -84,7 +91,7 @@
     <div class="contenedor">
         <!-- ===== QUESOS BLANDOS ===== -->
         <div class="seccion" id="quesos-blandos">
-            <h2>🧀 Quesos Blandos <span class="etiqueta-peso">Se pesa al entregar</span></h2>
+            <h2>🧀 Quesos Blandos <span class="etiqueta-peso">Precio final según peso</span></h2>
             <p class="nota-peso">👉 Seleccioná la cantidad deseada. El precio final se confirma al pesar el producto.</p>
             
             <div class="producto">
@@ -184,7 +191,7 @@
 
         <!-- ===== QUESOS SEMIDUROS ===== -->
         <div class="seccion" id="quesos-semiduros">
-            <h2>🧀 Quesos Semiduros <span class="etiqueta-peso">Se pesa al entregar</span></h2>
+            <h2>🧀 Quesos Semiduros <span class="etiqueta-peso">Precio final según peso</span></h2>
             <p class="nota-peso">👉 Seleccioná media barra, una barra o dos barras. El precio final se confirma al pesar.</p>
             <div class="producto">
                 <div class="prod-nombre">BARRA DAMBO TREMBLAY (4 kg aprox.) x kg</div>
@@ -210,7 +217,7 @@
 
         <!-- ===== QUESOS POR PORCIÓN ===== -->
         <div class="seccion" id="quesos-porcion">
-            <h2>Quesos por porción</h2>
+            <h2>Quesos por porción <span class="etiqueta-peso">Precio final según peso</span></h2>
             <p class="nota-peso">👉 Elegí la porción por monto o por peso estimado. El valor final se confirma al pesar.</p>
             <div class="producto">
                 <div class="prod-nombre">QUESO AZUL LA QUESERA (aprox. 2,4 kg)</div>
@@ -541,7 +548,7 @@
 
         <!-- ===== FIAMBRES PIAMONTESA ===== -->
         <div class="seccion" id="fiambres">
-            <h2>Fiambres Piamontesa <span class="etiqueta-peso">Se pesa al entregar</span></h2>
+            <h2>Fiambres Piamontesa <span class="etiqueta-peso">Precio final según peso</span></h2>
             <p class="nota-peso">👉 Seleccioná la cantidad de piezas. El precio final se confirma al pesar.</p>
             <div class="producto">
                 <div class="prod-nombre">PALETA DE CERDO PIAMONTESA (5 kg aprox.) x kg</div>
@@ -617,7 +624,7 @@
 
         <!-- ===== MORICONI POR PESO ===== -->
         <div class="seccion" id="moriconi">
-            <h2>Moriconi <span class="etiqueta-peso">Se pesa al entregar</span></h2>
+            <h2>Moriconi <span class="etiqueta-peso">Precio final según peso</span></h2>
             <p class="nota-peso">👉 Seleccioná la cantidad de piezas completas. El precio final se confirma al pesar.</p>
             <div class="producto">
                 <div class="prod-nombre">SALAMÍN P/G MORICONI (700 grs aprox.) x kg</div>
@@ -752,7 +759,27 @@
     </div>
 </div>
 
+<div class="aviso-overlay" id="avisoOverlay" hidden>
+    <div class="aviso-caja" role="alertdialog" aria-modal="true" aria-labelledby="avisoTitulo" aria-describedby="avisoMensaje">
+        <div class="aviso-encabezado" id="avisoTitulo">🧀 Lácteos La Unión</div>
+        <div class="aviso-mensaje" id="avisoMensaje"></div>
+        <div class="aviso-acciones"><button type="button" class="aviso-boton" onclick="cerrarAviso()">Entendido</button></div>
+    </div>
+</div>
+
 <script>
+function mostrarAviso(mensaje) {
+    const overlay = document.getElementById('avisoOverlay');
+    document.getElementById('avisoMensaje').textContent = mensaje;
+    overlay.hidden = false;
+    const boton = overlay.querySelector('button');
+    if (boton) boton.focus();
+}
+
+function cerrarAviso() {
+    document.getElementById('avisoOverlay').hidden = true;
+}
+
 // ============== DATOS ==============
 const COSTO_ENVIO = 1500;
 
@@ -1027,14 +1054,14 @@ function enviarWhatsApp() {
     const pago = document.getElementById('pago').value;
     
     if (!nombre.trim() || !telefono.trim()) {
-        alert('Por favor completá tu nombre y teléfono');
+        mostrarAviso('Por favor, completá tu nombre y teléfono.');
         return;
     }
     if (entrega === 'envio' && !domicilio.trim()) {
         document.getElementById('campoDomicilio').hidden = false;
         document.getElementById('domicilio').required = true;
         document.getElementById('domicilio').focus();
-        alert('Ingresá tu domicilio para el envío.');
+        mostrarAviso('Ingresá tu domicilio para el envío.');
         return;
     }
     
