@@ -95,7 +95,7 @@
             <p class="nota-peso">👉 Seleccioná la cantidad deseada. El precio final se confirma al pesar el producto.</p>
             
             <div class="producto">
-                <div class="prod-nombre">CUARTIROLO TREMBLAY</div>
+                <div class="prod-nombre">CUARTIROLO TREMBLAY (4 kg aprox.)</div>
                 <div class="prod-precio">$ 8.729,30 / kg — Se cobra al pesar</div>
                 <div class="fila-inferior">
                     <select id="sel_cuarti" onchange="seleccionarPeso('cuarti', this.value, 'CUARTIROLO TREMBLAY')">
@@ -950,10 +950,10 @@ function seleccionarPeso(clave, valorStr, nombre) {
     
     if (valor > 0) {
         seleccionesPeso[clave] = { nombre, texto };
-        document.getElementById(`${clave}_texto`).textContent = `✅ Seleccionado: ${texto}`;
+        document.getElementById(`sel_${clave}_texto`).textContent = `✅ Seleccionado: ${texto}`;
     } else {
         delete seleccionesPeso[clave];
-        document.getElementById(`${clave}_texto`).textContent = '';
+        document.getElementById(`sel_${clave}_texto`).textContent = '';
     }
     verificarSeleccion(); // ✅ Se llama AQUÍ cada vez que cambia una selección
 }
