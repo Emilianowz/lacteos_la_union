@@ -85,6 +85,7 @@
         <button class="cat-btn" onclick="irACategoria('yogures-leches', this)">Yogures y Leches</button>
         <button class="cat-btn" onclick="irACategoria('cremas-mantecas', this)">Cremas y Mantecas</button>
         <button class="cat-btn" onclick="irACategoria('fiambres', this)">Fiambres Piamontesa</button>
+        <button class="cat-btn" onclick="irACategoria('cortado-fetas', this)">Cortado en Fetas</button>
         <button class="cat-btn" onclick="irACategoria('moriconi', this)">Moriconi</button>
         <button class="cat-btn" onclick="irACategoria('snacks-crunch', this)">Snacks Crunch</button>
     </div>
@@ -625,6 +626,47 @@
             </div>
         </div>
 
+        <!-- ===== CORTADO EN FETAS ===== -->
+        <div class="seccion" id="cortado-fetas">
+            <h2>🥩 Cortado en Fetas</h2>
+            <p class="nota-peso">Elegí el peso deseado. El importe es estimado según los gramos seleccionados.</p>
+            <div class="producto">
+                <div class="prod-nombre">QUESO DANBO TREMBLAY</div>
+                <div class="prod-precio">$ 132,25 los 100 Gramos</div>
+                <div class="fila-inferior"><select id="fetas_danbo" onchange="seleccionarFetas('danbo','QUESO DANBO TREMBLAY',132.25,this.value)"><option value="0">— Seleccioná el peso —</option><option value="50">50 g</option><option value="100">100 g</option><option value="150">150 g</option><option value="200">200 g</option><option value="250">250 g</option><option value="300">300 g</option><option value="400">400 g</option><option value="500">500 g</option></select><div class="seleccionado-texto" id="fetas_danbo_texto"></div></div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">PALETA DE CERDO PIAMONTESA</div>
+                <div class="prod-precio">$ 138,45 los 100 Gramos</div>
+                <div class="fila-inferior"><select id="fetas_paleta_piamontesa" onchange="seleccionarFetas('paleta_piamontesa','PALETA DE CERDO PIAMONTESA',138.45,this.value)"><option value="0">— Seleccioná el peso —</option><option value="50">50 g</option><option value="100">100 g</option><option value="150">150 g</option><option value="200">200 g</option><option value="250">250 g</option><option value="300">300 g</option><option value="400">400 g</option><option value="500">500 g</option></select><div class="seleccionado-texto" id="fetas_paleta_piamontesa_texto"></div></div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">PALETA DE CERDO 131</div>
+                <div class="prod-precio">$ 105,95 los 100 Gramos</div>
+                <div class="fila-inferior"><select id="fetas_paleta_131" onchange="seleccionarFetas('paleta_131','PALETA DE CERDO 131',105.95,this.value)"><option value="0">— Seleccioná el peso —</option><option value="50">50 g</option><option value="100">100 g</option><option value="150">150 g</option><option value="200">200 g</option><option value="250">250 g</option><option value="300">300 g</option><option value="400">400 g</option><option value="500">500 g</option></select><div class="seleccionado-texto" id="fetas_paleta_131_texto"></div></div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">JAMÓN COCIDO PIAMONTESA</div>
+                <div class="prod-precio">$ 186,55 los 100 Gramos</div>
+                <div class="fila-inferior"><select id="fetas_jamon_piamontesa" onchange="seleccionarFetas('jamon_piamontesa','JAMÓN COCIDO PIAMONTESA',186.55,this.value)"><option value="0">— Seleccioná el peso —</option><option value="50">50 g</option><option value="100">100 g</option><option value="150">150 g</option><option value="200">200 g</option><option value="250">250 g</option><option value="300">300 g</option><option value="400">400 g</option><option value="500">500 g</option></select><div class="seleccionado-texto" id="fetas_jamon_piamontesa_texto"></div></div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">SALCHICHÓN C/VERD PIAMONTESA</div>
+                <div class="prod-precio">$ 85,80 los 100 Gramos</div>
+                <div class="fila-inferior"><select id="fetas_salchichon" onchange="seleccionarFetas('salchichon','SALCHICHÓN C/VERD PIAMONTESA',85.80,this.value)"><option value="0">— Seleccioná el peso —</option><option value="50">50 g</option><option value="100">100 g</option><option value="150">150 g</option><option value="200">200 g</option><option value="250">250 g</option><option value="300">300 g</option><option value="400">400 g</option><option value="500">500 g</option></select><div class="seleccionado-texto" id="fetas_salchichon_texto"></div></div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">BONDIOLA PIAMONTESA</div>
+                <div class="prod-precio">$ 344,50 los 100 Gramos</div>
+                <div class="fila-inferior"><select id="fetas_bondiola" onchange="seleccionarFetas('bondiola','BONDIOLA PIAMONTESA',344.50,this.value)"><option value="0">— Seleccioná el peso —</option><option value="50">50 g</option><option value="100">100 g</option><option value="150">150 g</option><option value="200">200 g</option><option value="250">250 g</option><option value="300">300 g</option><option value="400">400 g</option><option value="500">500 g</option></select><div class="seleccionado-texto" id="fetas_bondiola_texto"></div></div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">SALAME TIPO CRESPÓN PIAMONTESA</div>
+                <div class="prod-precio">$ 252,20 los 100 Gramos</div>
+                <div class="fila-inferior"><select id="fetas_salame_crespon" onchange="seleccionarFetas('salame_crespon','SALAME TIPO CRESPÓN PIAMONTESA',252.20,this.value)"><option value="0">— Seleccioná el peso —</option><option value="50">50 g</option><option value="100">100 g</option><option value="150">150 g</option><option value="200">200 g</option><option value="250">250 g</option><option value="300">300 g</option><option value="400">400 g</option><option value="500">500 g</option></select><div class="seleccionado-texto" id="fetas_salame_crespon_texto"></div></div>
+            </div>
+        </div>
+
         <!-- ===== MORICONI POR PESO ===== -->
         <div class="seccion" id="moriconi">
             <h2>Moriconi <span class="etiqueta-peso">Precio final según peso</span></h2>
@@ -875,6 +917,7 @@ const cantidades = {};
 const seleccionesPeso = {};
 const cantidadesPeso = { muzz_cilindro: 0, salamin_pg_moriconi: 0, salamin_pf_moriconi: 0, chorizo_moriconi: 0 };
 const seleccionesPorcion = {};
+const seleccionesFetas = {};
 let quesoAzul = null;
 
 for (const clave in PRECIOS) cantidades[clave] = 0;
@@ -890,8 +933,9 @@ function verificarSeleccion() {
     const haySeleccionPeso = Object.keys(seleccionesPeso).length > 0;
     const hayCantidadPeso = Object.values(cantidadesPeso).some(v => v > 0);
     const hayPorcion = Object.keys(seleccionesPorcion).length > 0 || quesoAzul !== null;
+    const hayFetas = Object.keys(seleccionesFetas).length > 0;
     
-    const hayAlgoSeleccionado = hayCantidadFija || haySeleccionPeso || hayCantidadPeso || hayPorcion;
+    const hayAlgoSeleccionado = hayCantidadFija || haySeleccionPeso || hayCantidadPeso || hayPorcion || hayFetas;
     
     document.getElementById('btnPedir').disabled = !hayAlgoSeleccionado;
 }
@@ -901,6 +945,7 @@ function calcularTotal() {
     for (const clave in cantidades) {
         total += cantidades[clave] * PRECIOS[clave];
     }
+    for (const clave in seleccionesFetas) total += seleccionesFetas[clave].importe;
     document.getElementById('total').textContent = formatoMoneda(total);
     verificarSeleccion();
     return total;
@@ -957,6 +1002,21 @@ function seleccionarPeso(clave, valorStr, nombre) {
         document.getElementById(`sel_${clave}_texto`).textContent = '';
     }
     verificarSeleccion(); // ✅ Se llama AQUÍ cada vez que cambia una selección
+}
+
+// ============== PRODUCTOS CORTADOS EN FETAS ==============
+function seleccionarFetas(clave, nombre, precio100g, gramosStr) {
+    const gramos = parseInt(gramosStr, 10) || 0;
+    const texto = document.getElementById(`fetas_${clave}_texto`);
+    if (gramos > 0) {
+        const importe = Math.round((gramos / 100 * precio100g) * 100) / 100;
+        seleccionesFetas[clave] = { nombre, gramos, precio100g, importe };
+        texto.textContent = `Seleccionado: ${gramos} g · ${formatoMoneda(importe)}`;
+    } else {
+        delete seleccionesFetas[clave];
+        texto.textContent = '';
+    }
+    calcularTotal();
 }
 
 // ============== QUESOS POR PORCIÓN ==============
@@ -1047,6 +1107,14 @@ function actualizarResumen() {
         lista.appendChild(separador);
     }
     
+    for (const clave in seleccionesFetas) {
+        const item = seleccionesFetas[clave];
+        const div = document.createElement('div');
+        div.className = 'res-item';
+        div.innerHTML = `<span>${item.nombre} (${item.gramos} g)</span><span>${formatoMoneda(item.importe)}</span>`;
+        lista.appendChild(div);
+    }
+
     for (const clave in cantidades) {
         if (cantidades[clave] > 0) {
             const div = document.createElement('div');
@@ -1121,6 +1189,11 @@ function enviarWhatsApp() {
     
     mensaje += `📦 *PRODUCTOS:*%0A`;
     let subtotal = 0;
+    for (const clave in seleccionesFetas) {
+        const item = seleccionesFetas[clave];
+        subtotal += item.importe;
+        mensaje += `${item.nombre} — ${item.gramos} g — ${formatoMoneda(item.importe)}%0A`;
+    }
     for (const clave in cantidades) {
         if (cantidades[clave] > 0) {
             const importe = cantidades[clave] * PRECIOS[clave];
