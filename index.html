@@ -682,6 +682,21 @@
                 <div class="prod-precio">$ 2.443,75</div>
                 <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarCant('papas_crema_90',1)">+</button><span class="cant-num" id="cant_papas_crema_90">0</span><button class="btn-cant" onclick="cambiarCant('papas_crema_90',-1)">−</button></div></div>
             </div>
+            <div class="producto">
+                <div class="prod-nombre">PIPITAS FRITAS GUACAMOLE x 90g</div>
+                <div class="prod-precio">$ 2.450,00</div>
+                <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarCant('pipitas_guacamole_90',1)">+</button><span class="cant-num" id="cant_pipitas_guacamole_90">0</span><button class="btn-cant" onclick="cambiarCant('pipitas_guacamole_90',-1)">−</button></div></div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">MANI PELADO x 100g</div>
+                <div class="prod-precio">$ 1.600,00</div>
+                <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarCant('mani_pelado_100',1)">+</button><span class="cant-num" id="cant_mani_pelado_100">0</span><button class="btn-cant" onclick="cambiarCant('mani_pelado_100',-1)">−</button></div></div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">PALITOS FRITOS x 80g</div>
+                <div class="prod-precio">$ 1.600,00</div>
+                <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarCant('palitos_fritos_80',1)">+</button><span class="cant-num" id="cant_palitos_fritos_80">0</span><button class="btn-cant" onclick="cambiarCant('palitos_fritos_80',-1)">−</button></div></div>
+            </div>
         </div>
     </div>
 
@@ -788,6 +803,7 @@ const PRECIOS = {
     unt_clas: 1825, unt_ps: 1825, unt_jamon: 1825, unt_azul: 1825, unt_cheddar: 1825, unt_finas: 1825, unt_salame: 1825,
     papas_clas_20: 743.75, papas_clas_34: 1275, papas_clas_80: 2125, papas_clas_150: 3506.25, papas_clas_250: 4250,
     papas_jamon_90: 2443.75, papas_crema_90: 2443.75,
+    pipitas_guacamole_90: 2450, mani_pelado_100: 1600, palitos_fritos_80: 1600,
     qc_trem_clas: 3350,
     qc_trem_light: 3350,
     qc_trem_pouch: 24500,
@@ -824,6 +840,9 @@ const NOMBRES = {
     papas_clas_80: 'PAPITAS CLÁSICAS × 80g', papas_clas_150: 'PAPITAS CLÁSICAS × 150g',
     papas_clas_250: 'PAPITAS CLÁSICAS × 250g', papas_jamon_90: 'PAPITAS JAMÓN × 90g',
     papas_crema_90: 'PAPITAS CREMA Y CEBOLLA × 90g',
+    pipitas_guacamole_90: 'PIPITAS FRITAS GUACAMOLE x 90g',
+    mani_pelado_100: 'MANI PELADO x 100g',
+    palitos_fritos_80: 'PALITOS FRITOS x 80g',
     qc_trem_clas: 'QUESO CREMA TREMBLAY CLÁSICO x 290 grs',
     qc_trem_light: 'QUESO CREMA TREMBLAY LIGHT x 290 grs',
     qc_trem_pouch: 'QUESO CREMA TREMBLAY POUCH x 3 kg (x unidad)',
@@ -1110,8 +1129,10 @@ function enviarWhatsApp() {
     const totalFinal = entrega === 'envio' ? subtotal + COSTO_ENVIO : subtotal;
     mensaje += `%0A💰 *SUBTOTAL: ${formatoMoneda(subtotal)}*%0A`;
     if (entrega === 'envio') mensaje += `🚚 *Envío: $1.500*%0A`;
-    mensaje += `💡 *Los productos por peso se pesan y cobran al entregar*%0A`;
-    mensaje += `💰 *TOTAL A PAGAR AL ENTREGAR: ${formatoMoneda(totalFinal)} + valor de quesos blandos*`;
+    if (hayQuesosBlandos) {
+        mensaje += `💡 *Hay productos que deben pesarse para poder ser cobrados, el valor de cada uno se enviará por WhatsApp*%0A`;
+    }
+    mensaje += `💰 *TOTAL A PAGAR AL ENTREGAR: ${formatoMoneda(totalFinal)} + valor de los productos por peso*`;
     
     window.open(`https://wa.me/543412663345?text=${mensaje}`, '_blank');
 }
