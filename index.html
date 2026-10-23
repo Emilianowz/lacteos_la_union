@@ -78,11 +78,11 @@
     <div class="categorias">
         <button class="cat-btn activo" onclick="irACategoria('quesos-blandos', this)">Quesos Blandos</button>
         <button class="cat-btn" onclick="irACategoria('quesos-semiduros', this)">Quesos Semiduros</button>
-        <button class="cat-btn" onclick="irACategoria('quesos-porcion', this)">Quesos por porción</button>
+        <button class="cat-btn" onclick="irACategoria('quesos-porcion', this)">Quesos Por Porcion</button>
         <button class="cat-btn" onclick="irACategoria('ralladitos', this)">Ralladitos</button>
         <button class="cat-btn" onclick="irACategoria('untables', this)">Untables y DDL</button>
-        <button class="cat-btn" onclick="irACategoria('yogures-leches', this)">Yogures y leches</button>
-        <button class="cat-btn" onclick="irACategoria('cremas-mantecas', this)">Cremas y mantecas</button>
+        <button class="cat-btn" onclick="irACategoria('yogures-leches', this)">Yogures y Leches</button>
+        <button class="cat-btn" onclick="irACategoria('cremas-mantecas', this)">Cremas y Mantecas</button>
         <button class="cat-btn" onclick="irACategoria('fiambres', this)">Fiambres Piamontesa</button>
         <button class="cat-btn" onclick="irACategoria('moriconi', this)">Moriconi</button>
         <button class="cat-btn" onclick="irACategoria('snacks-crunch', this)">Snacks Crunch</button>
@@ -140,20 +140,6 @@
             </div>
 
             <div class="producto">
-                <div class="prod-nombre">MUZZARELLA TREMBLAY BARRA (aprox. 4 kg)</div>
-                <div class="prod-precio">$ 12.093,51 / kg — Se cobra al pesar</div>
-                <div class="fila-inferior">
-                    <select id="sel_muzz_barra" onchange="seleccionarPeso('muzz_barra', this.value, 'MUZZARELLA BARRA')">
-                        <option value="0">— Cantidad deseada —</option>
-                        <option value="0.5">1/2 barra</option>
-                        <option value="1">1 barra</option>
-                        <option value="2">2 barras</option>
-                    </select>
-                    <div class="seleccionado-texto" id="sel_muzz_barra_texto"></div>
-                </div>
-            </div>
-
-            <div class="producto">
                 <div class="prod-nombre">POR SALUT TREMBLAY PORCIONADO (400 g aprox.) x unidad</div>
                 <div class="prod-precio">$ 9.250,00</div>
                 <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarCant('portsalut_porcionado',1)">+</button><span class="cant-num" id="cant_portsalut_porcionado">0</span><button class="btn-cant" onclick="cambiarCant('portsalut_porcionado',-1)">−</button></div></div>
@@ -174,17 +160,6 @@
                 <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarCant('cheddar_untar_pouch',1)">+</button><span class="cant-num" id="cant_cheddar_untar_pouch">0</span><button class="btn-cant" onclick="cambiarCant('cheddar_untar_pouch',-1)">−</button></div></div>
             </div>
 
-            <div class="producto">
-                <div class="prod-nombre">MUZZARELLA TREMBLAY CILINDRO (5 kg completo)</div>
-                <div class="prod-precio">$ 9.193,71 / cilindro completo — Se cobra al pesar</div>
-                <div class="fila-inferior">
-                    <div class="contador">
-                        <button class="btn-cant" onclick="cambiarCantidadPeso('muzz_cilindro', 1)">+</button>
-                        <span class="cant-num" id="cant_muzz_cilindro">0</span>
-                        <button class="btn-cant" onclick="cambiarCantidadPeso('muzz_cilindro', -1)">−</button>
-                    </div>
-                </div>
-            </div>
 
 
         </div>
@@ -213,11 +188,38 @@
                     <div class="seleccionado-texto" id="cheddar_quesera_barra_texto"></div>
                 </div>
             </div>
+
+            <div class="producto">
+                <div class="prod-nombre">MUZZARELLA TREMBLAY BARRA (aprox. 4 kg)</div>
+                <div class="prod-precio">$ 12.093,51 / kg — Se cobra al pesar</div>
+                <div class="fila-inferior">
+                    <select id="sel_muzz_barra" onchange="seleccionarPeso('muzz_barra', this.value, 'MUZZARELLA BARRA')">
+                        <option value="0">— Cantidad deseada —</option>
+                        <option value="0.5">1/2 barra</option>
+                        <option value="1">1 barra</option>
+                        <option value="2">2 barras</option>
+                    </select>
+                    <div class="seleccionado-texto" id="sel_muzz_barra_texto"></div>
+                </div>
+            </div>
+
+            <div class="producto">
+                <div class="prod-nombre">MUZZARELLA TREMBLAY CILINDRO (5 kg completo)</div>
+                <div class="prod-precio">$ 9.193,71 / cilindro completo — Se cobra al pesar</div>
+                <div class="fila-inferior">
+                    <div class="contador">
+                        <button class="btn-cant" onclick="cambiarCantidadPeso('muzz_cilindro', 1)">+</button>
+                        <span class="cant-num" id="cant_muzz_cilindro">0</span>
+                        <button class="btn-cant" onclick="cambiarCantidadPeso('muzz_cilindro', -1)">−</button>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <!-- ===== QUESOS POR PORCIÓN ===== -->
         <div class="seccion" id="quesos-porcion">
-            <h2>Quesos por porción <span class="etiqueta-peso">Precio final según peso</span></h2>
+            <h2>Quesos Por Porcion <span class="etiqueta-peso">Precio final según peso</span></h2>
             <p class="nota-peso">👉 Elegí la porción por monto o por peso estimado. El valor final se confirma al pesar.</p>
             <div class="producto">
                 <div class="prod-nombre">QUESO AZUL LA QUESERA (aprox. 2,4 kg)</div>
@@ -486,7 +488,7 @@
 
         <!-- ===== YOGURES Y LECHES ===== -->
         <div class="seccion" id="yogures-leches">
-            <h2>Yogures y leches</h2>
+            <h2>Yogures y Leches</h2>
 
             <div class="producto">
                 <div class="prod-nombre">YOGUR VAINILLA TREMBLAY x 900 grs</div>
@@ -512,7 +514,7 @@
 
         <!-- ===== CREMAS Y MANTECAS ===== -->
         <div class="seccion" id="cremas-mantecas">
-            <h2>Cremas y mantecas</h2>
+            <h2>Cremas y Mantecas</h2>
 
             <div class="producto">
                 <div class="prod-nombre">CREMA DE LECHE TREMBLAY x 200 grs</div>
