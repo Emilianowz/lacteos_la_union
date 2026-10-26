@@ -1167,7 +1167,7 @@ function enviarWhatsApp() {
     if (hayQuesosBlandos) {
         mensaje += `💡 *Hay productos que deben pesarse para poder ser cobrados, el valor de cada uno se enviará por WhatsApp*%0A`;
     }
-    mensaje += `💰 *TOTAL A PAGAR AL ENTREGAR: ${formatoMoneda(totalFinal)} + '+' VALOR DE LOS PRODUCTOS POR PESO*`;
+    mensaje += `💰 *TOTAL A PAGAR AL ENTREGAR: ${formatoMoneda(totalFinal)} + + VALOR DE LOS PRODUCTOS POR PESO*`;
     
     window.open(`https://wa.me/543412663345?text=${mensaje}`, '_blank');
 }
