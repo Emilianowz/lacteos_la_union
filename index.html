@@ -72,9 +72,9 @@
         .horarios-reparto { margin: 0; width: 176px; max-width: 176px; flex: 0 0 176px; }
         .horarios-toggle { display: inline-flex; width: 100%; min-height: 58px; box-sizing: border-box; align-items: center; justify-content: center; gap: 6px; padding: 9px 10px; border: 1px solid #0066B3; border-radius: 9px; background: rgba(255,255,255,.92); color: #005493; font-size: 14px; line-height: 1.25; text-align: center; white-space: normal; font-weight: 700; cursor: pointer; }
         .horarios-toggle:focus-visible { outline: 3px solid #F5A623; outline-offset: 3px; }
-        .horarios-detalle { position: absolute; z-index: 5; top: calc(100% + 2px); right: 12px; width: min(330px, calc(100vw - 32px)); box-sizing: border-box; margin: 0; padding: 14px; border: 1px solid rgba(0,102,179,.25); border-radius: 10px; background: rgba(255,255,255,.97); color: #243746; text-align: left; font-size: 15px; line-height: 1.5; box-shadow: 0 5px 16px rgba(0,0,0,.14); }
+        .horarios-detalle { position: absolute; z-index: 5; top: calc(100% + 2px); right: 12px; width: min(350px, calc(100vw - 32px)); box-sizing: border-box; margin: 0; padding: 18px; border: 1px solid rgba(0,102,179,.25); border-radius: 10px; background: rgba(255,255,255,.98); color: #243746; text-align: left; font-size: 19px; line-height: 1.6; box-shadow: 0 5px 16px rgba(0,0,0,.14); }
         .horarios-detalle[hidden] { display: none !important; }
-        .horarios-detalle h2 { margin-bottom: 8px; color: #0066B3; font-size: 16px; }
+        .horarios-detalle h2 { margin-bottom: 12px; color: #0066B3; font-size: 21px; line-height: 1.3; }
         .horarios-detalle p + p { margin-top: 8px; }
 
     @media (max-width: 380px) {
@@ -92,7 +92,7 @@
     <div class="header">
         <h1 class="logo-encabezado"><img src="32E93E2C-F1DA-4913-A6F4-C34D675EE26B.png" alt="Lácteos La Unión" /></h1>
         <div class="horarios-reparto">
-            <button type="button" class="horarios-toggle" id="botonHorarios" aria-expanded="false" aria-controls="detalleHorarios" onclick="alternarHorarios()">🕒 Ver horarios de pedidos<br>y reparto</button>
+            <button type="button" class="horarios-toggle" id="botonHorarios" aria-expanded="false" aria-controls="detalleHorarios" onclick="alternarHorarios()">🕒 Ver horarios de<br>pedidos y repartos</button>
             <section class="horarios-detalle" id="detalleHorarios" hidden>
                 <h2>Horarios de pedidos y reparto</h2>
                 <p><strong>Pedidos de 17:00 a 22:00</strong><br>Reparto de 09:00 a 13:00.</p>
@@ -817,7 +817,7 @@ function alternarHorarios() {
     const mostrar = panel.hidden;
     panel.hidden = !mostrar;
     boton.setAttribute('aria-expanded', String(mostrar));
-    boton.textContent = mostrar ? '✖ Ocultar horarios' : '🕒 Ver horarios de pedidos<br>y reparto';
+    boton.innerHTML = mostrar ? '✖ Ocultar horarios' : '🕒 Ver horarios de<br>pedidos y repartos';
 }
 function mostrarAviso(mensaje) {
     const overlay = document.getElementById('avisoOverlay');
