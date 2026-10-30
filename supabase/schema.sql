@@ -329,12 +329,8 @@ create policy "app_settings_admin_only" on public.app_settings
   using (public.is_admin())
   with check (public.is_admin());
 
--- Valores iniciales de configuración (pueden modificarse desde administración).
-insert into public.app_settings (key, value)
-values
-  ('delivery_fee', '{"amount": 1500}'::jsonb),
-  ('pickup_address', '{"value": "Santiago del Estero 1047"}'::jsonb)
-on conflict (key) do nothing;
+-- La configuración comercial (domicilio, costos de envío, etc.) se cargará
+-- desde la administración cuando se confirme la información real del negocio.
 
 -- IMPORTANTE:
 -- 1) Crear tu usuario desde Supabase Auth.
