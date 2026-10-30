@@ -145,6 +145,36 @@
         .aviso-mensaje { font-size: 24px !important; line-height: 1.6 !important; color: #333 !important; }
         @media (max-width: 520px) { .aviso-mensaje { font-size: 23px !important; } }
 
+
+        /* Ajuste de cabecera: logo y botón más próximos, y horarios más legibles */
+        .header { gap: 8px !important; }
+        .header .logo-encabezado {
+            width: 96px !important;
+            max-width: 96px !important;
+            flex: 0 0 96px !important;
+        }
+        .header .horarios-reparto {
+            width: 176px !important;
+            max-width: 176px !important;
+            flex: 0 0 176px !important;
+        }
+        .horarios-detalle p {
+            font-size: 22px !important;
+            line-height: 1.55 !important;
+        }
+        @media (max-width: 380px) {
+            .header .logo-encabezado {
+                width: 82px !important;
+                max-width: 82px !important;
+                flex-basis: 82px !important;
+            }
+            .header .horarios-reparto {
+                width: 158px !important;
+                max-width: 158px !important;
+                flex-basis: 158px !important;
+            }
+        }
+
     </style>
 </head>
 <body>
