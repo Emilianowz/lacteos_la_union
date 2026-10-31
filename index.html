@@ -108,7 +108,7 @@
         .horarios-reparto { margin: 0; width: 176px; max-width: 176px; flex: 0 0 176px; }
         .horarios-toggle { display: inline-flex; width: 100%; min-height: 58px; box-sizing: border-box; align-items: center; justify-content: center; gap: 6px; padding: 9px 10px; border: 1px solid #0066B3; border-radius: 9px; background: rgba(255,255,255,.92); color: #005493; font-size: 14px; line-height: 1.25; text-align: center; white-space: normal; font-weight: 700; cursor: pointer; }
         .horarios-toggle:focus-visible { outline: 3px solid #F5A623; outline-offset: 3px; }
-        .horarios-detalle { position: fixed; z-index: 2147483000; top: 120px; left: 50%; right: auto; transform: translateX(-50%); width: calc(100vw - 24px); max-width: none; box-sizing: border-box; margin: 0; padding: 20px; border: 1px solid rgba(0,102,179,.25); border-radius: 10px; background: rgba(255,255,255,.98); color: #243746; text-align: left; font-size: 22px; line-height: 1.6; box-shadow: 0 5px 16px rgba(0,0,0,.22); overflow-wrap: anywhere; }
+        .horarios-detalle { position: fixed; z-index: 2147483000; top: 50%; left: 50%; right: auto; transform: translate(-50%, -50%); width: calc(100vw - 24px); max-width: 560px; max-height: calc(100dvh - 32px); overflow-y: auto; box-sizing: border-box; margin: 0; padding: 20px; border: 1px solid rgba(0,102,179,.25); border-radius: 10px; background: rgba(255,255,255,.98); color: #243746; text-align: left; font-size: 22px; line-height: 1.6; box-shadow: 0 5px 16px rgba(0,0,0,.22); overflow-wrap: anywhere; }
         .horarios-detalle[hidden] { display: none !important; }
         .horarios-detalle h2 { margin-bottom: 12px; color: #0066B3; font-size: 21px; line-height: 1.3; }
         .horarios-detalle p + p { margin-top: 8px; }
@@ -249,10 +249,10 @@
             </div>
 
             <div class="producto">
-                <div class="prod-nombre">por salut TREMBLAY (aprox. 3,2 kg)</div>
+                <div class="prod-nombre">POR SALUT TREMBLAY (aprox. 3,2 kg)</div>
                 <div class="prod-precio">$ 9.000,00 / kg — Se cobra al pesar</div>
                 <div class="fila-inferior">
-                    <select id="sel_portsalut" onchange="seleccionarPeso('portsalut', this.value, 'por salut TREMBLAY')">
+                    <select id="sel_portsalut" onchange="seleccionarPeso('portsalut', this.value, 'POR SALUT TREMBLAY')">
                         <option value="0">— Cantidad deseada —</option>
                         <option value="0.25">1/4 horma</option>
                         <option value="0.5">1/2 horma</option>
@@ -269,7 +269,7 @@
                 <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarCant('portsalut_porcionado',1)">+</button><span class="cant-num" id="cant_portsalut_porcionado">0</span><button class="btn-cant" onclick="cambiarCant('portsalut_porcionado',-1)">−</button></div></div>
             </div>
             <div class="producto">
-                <div class="prod-nombre">por salut SIN SAL TREMBLAY PORCIONADO (400 g aprox.) x unidad</div>
+                <div class="prod-nombre">POR SALUT SIN SAL TREMBLAY PORCIONADO (400 g aprox.) x unidad</div>
                 <div class="prod-precio">$ 9.900,00</div>
                 <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarCant('portsalut_ss_porcionado',1)">+</button><span class="cant-num" id="cant_portsalut_ss_porcionado">0</span><button class="btn-cant" onclick="cambiarCant('portsalut_ss_porcionado',-1)">−</button></div></div>
             </div>
@@ -389,7 +389,7 @@
             </div>
             <div class="producto">
                 <div class="prod-nombre">HOLANDA LA VERONA x kg</div>
-                <div class="prod-precio">$ 18.850,00 / kg — Se cobra al pesar</div>
+                <div class="prod-precio">$ 18.100,00 / kg — Se cobra al pesar</div>
                 <p class="nota-peso" style="margin-top:5px;">Elegí UNA sola opción — valor orientativo</p>
                 <div class="fila-inferior" style="margin-top:5px; flex-wrap:wrap; gap:15px;">
                     <div class="selector-grupo">
@@ -491,7 +491,7 @@
                 <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarCant('unt_clas',1)">+</button><span class="cant-num" id="cant_unt_clas">0</span><button class="btn-cant" onclick="cambiarCant('unt_clas',-1)">−</button></div></div>
             </div>
             <div class="producto">
-                <div class="prod-nombre">UNTABLE por salut TREMBLAY × 190gr</div>
+                <div class="prod-nombre">UNTABLE POR SALUT TREMBLAY × 190gr</div>
                 <div class="prod-precio">$ 1.800,00</div>
                 <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarCant('unt_ps',1)">+</button><span class="cant-num" id="cant_unt_ps">0</span><button class="btn-cant" onclick="cambiarCant('unt_ps',-1)">−</button></div></div>
             </div>
@@ -636,7 +636,7 @@
             <p class="nota-peso">👉 Seleccioná la cantidad de piezas. El precio final se confirma al pesar.</p>
             <div class="producto">
                 <div class="prod-nombre">PALETA DE CERDO PIAMONTESA (5 kg aprox.) x kg</div>
-                <div class="prod-precio">$ 10.250,00 / kg — Se cobra al pesar</div>
+                <div class="prod-precio">$ 9.800,00 / kg — Se cobra al pesar</div>
                 <div class="fila-inferior">
                     <select id="sel_paleta_piamontesa" onchange="seleccionarPeso('paleta_piamontesa', this.value, 'PALETA DE CERDO PIAMONTESA (5 kg aprox.) x kg')">
                         <option value="0">— Cantidad deseada —</option><option value="0.5-pieza">1/2 pieza</option><option value="1-pieza">1 pieza</option><option value="2-pieza">2 piezas</option>
@@ -646,7 +646,7 @@
             </div>
             <div class="producto">
                 <div class="prod-nombre">PALETA DE CERDO 131 (5 kg aprox.) x kg</div>
-                <div class="prod-precio">$ 7.800,00 / kg — Se cobra al pesar</div>
+                <div class="prod-precio">$ 7.500,00 / kg — Se cobra al pesar</div>
                 <div class="fila-inferior">
                     <select id="sel_paleta_131" onchange="seleccionarPeso('paleta_131', this.value, 'PALETA DE CERDO 131 (5 kg aprox.) x kg')">
                         <option value="0">— Cantidad deseada —</option><option value="0.5-pieza">1/2 pieza</option><option value="1-pieza">1 pieza</option><option value="2-pieza">2 piezas</option>
@@ -656,7 +656,7 @@
             </div>
             <div class="producto">
                 <div class="prod-nombre">JAMÓN COCIDO FIAM. PIAMONTESA (3 kg aprox.) x kg</div>
-                <div class="prod-precio">$ 13.800,00 / kg — Se cobra al pesar</div>
+                <div class="prod-precio">$ 13.200,00 / kg — Se cobra al pesar</div>
                 <div class="fila-inferior">
                     <select id="sel_jamon_piamontesa" onchange="seleccionarPeso('jamon_piamontesa', this.value, 'JAMÓN COCIDO FIAM. PIAMONTESA (3 kg aprox.) x kg')">
                         <option value="0">— Cantidad deseada —</option><option value="0.5-pieza">1/2 pieza</option><option value="1-pieza">1 pieza</option><option value="2-pieza">2 piezas</option>
@@ -666,7 +666,7 @@
             </div>
             <div class="producto">
                 <div class="prod-nombre">BONDIOLA PIAMONTESA (1 kg aprox.) x kg</div>
-                <div class="prod-precio">$ 25.450,00 / kg — Se cobra al pesar</div>
+                <div class="prod-precio">$ 24.400,00 / kg — Se cobra al pesar</div>
                 <div class="fila-inferior">
                     <select id="sel_bondiola_piamontesa" onchange="seleccionarPeso('bondiola_piamontesa', this.value, 'BONDIOLA PIAMONTESA (1 kg aprox.) x kg')">
                         <option value="0">— Cantidad deseada —</option><option value="0.5-pieza">1/2 pieza</option><option value="1-pieza">1 pieza</option><option value="2-pieza">2 piezas</option>
@@ -676,7 +676,7 @@
             </div>
             <div class="producto">
                 <div class="prod-nombre">SALAME x MT. PIAMONTESA P/G (900 g) x kg</div>
-                <div class="prod-precio">$ 18.850,00 / kg — Se cobra al pesar</div>
+                <div class="prod-precio">$ 18.100,00 / kg — Se cobra al pesar</div>
                 <div class="fila-inferior">
                     <select id="sel_salame_mt_piamontesa" onchange="seleccionarPeso('salame_mt_piamontesa', this.value, 'SALAME x MT. PIAMONTESA P/G (900 g) x kg')">
                         <option value="0">— Cantidad deseada —</option><option value="0.5-pieza">1/2 pieza</option><option value="1-pieza">1 pieza</option><option value="2-pieza">2 piezas</option>
@@ -686,7 +686,7 @@
             </div>
             <div class="producto">
                 <div class="prod-nombre">SALAME P/G TIPO CRESPÓN PIAMONTESA (1,8 kg aprox.)</div>
-                <div class="prod-precio">$ 18.600,00 / kg — Se cobra al pesar</div>
+                <div class="prod-precio">$ 17.850,00 / kg — Se cobra al pesar</div>
                 <div class="fila-inferior">
                     <select id="sel_salame_crespon" onchange="seleccionarPeso('salame_crespon', this.value, 'SALAME P/G TIPO CRESPÓN PIAMONTESA (1,8 kg aprox.)')">
                         <option value="0">— Cantidad deseada —</option><option value="0.5-pieza">1/2 pieza</option><option value="1-pieza">1 pieza</option><option value="2-pieza">2 piezas</option>
@@ -696,7 +696,7 @@
             </div>
             <div class="producto">
                 <div class="prod-nombre">SALCHICHÓN C/VERD PIAMONTESA (2,5 kg) x kg</div>
-                <div class="prod-precio">$ 6.350,00 / kg — Se cobra al pesar</div>
+                <div class="prod-precio">$ 6.050,00 / kg — Se cobra al pesar</div>
                 <div class="fila-inferior">
                     <select id="sel_salchichon_verd" onchange="seleccionarPeso('salchichon_verd', this.value, 'SALCHICHÓN C/VERD PIAMONTESA (2,5 kg) x kg')">
                         <option value="0">— Cantidad deseada —</option><option value="0.5-pieza">1/2 pieza</option><option value="1-pieza">1 pieza</option><option value="2-pieza">2 piezas</option>
@@ -981,7 +981,7 @@ const PRECIOS = {
 const NOMBRES = {
     sancor40: 'RALLADO SANCOR × 40gr', paulina40: 'RALLADO LA PAULINA × 40gr', 
     quesera40: 'RALLADO LA QUESERA × 40gr', quesera150: 'RALLADO LA QUESERA × 150gr',
-    unt_clas: 'UNTABLE CLÁSICO TREMBLAY × 190gr', unt_ps: 'UNTABLE por salut TREMBLAY × 190gr',
+    unt_clas: 'UNTABLE CLÁSICO TREMBLAY × 190gr', unt_ps: 'UNTABLE POR SALUT TREMBLAY × 190gr',
     unt_jamon: 'UNTABLE JAMÓN TREMBLAY × 190gr', unt_azul: 'UNTABLE AZUL TREMBLAY × 190gr',
     unt_cheddar: 'UNTABLE CHEDDAR TREMBLAY × 190gr', unt_finas: 'UNTABLE FINAS HIERBAS TREMBLAY × 190gr',
     unt_salame: 'UNTABLE SALAME TREMBLAY × 190gr',
@@ -1012,7 +1012,7 @@ const NOMBRES = {
     manteca_sancor_100: 'MANTECA SANCOR x 100 grs',
     manteca_sancor_200: 'MANTECA SANCOR x 200 grs',
     portsalut_porcionado: 'POR SALUT TREMBLAY PORCIONADO (400 g aprox.) x unidad',
-    portsalut_ss_porcionado: 'por salut SIN SAL TREMBLAY PORCIONADO (400 g aprox.) x unidad',
+    portsalut_ss_porcionado: 'POR SALUT SIN SAL TREMBLAY PORCIONADO (400 g aprox.) x unidad',
     pasta_azul_quesera_pouch: 'PASTA AZUL LA QUESERA POUCH 4 kg x unidad',
     cheddar_untar_pouch: 'QUESO CHEDDAR PARA UNTAR POUCH 4 kg x unidad'
 };
