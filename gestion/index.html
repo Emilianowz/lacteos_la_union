@@ -131,6 +131,13 @@
               </div>
             </div>
             <div id="manualExistingCustomerInfo" class="field-help"></div>
+            <div id="manualExistingCustomerTypeWrap" class="hidden">
+              <label for="manualExistingCustomerType">Clasificación del cliente</label>
+              <div class="form-actions" style="margin-top:6px">
+                <select id="manualExistingCustomerType"><option value="particular">Particular</option><option value="comercio">Comercio</option></select>
+                <button id="manualSaveCustomerType" class="secondary" type="button">Guardar tipo</button>
+              </div>
+            </div>
             <div class="manual-row">
               <div><label for="manualDeliveryType">Entrega</label><select id="manualDeliveryType"><option value="envio">Envío a domicilio</option><option value="retiro">Retiro</option></select></div>
               <div><label for="manualPayment">Forma de pago</label><select id="manualPayment"><option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option><option value="debito">Débito</option><option value="cuenta_corriente">Cuenta corriente</option></select></div>
@@ -403,13 +410,15 @@
       const isNew=!$("manualNewCustomerPanel").classList.contains("hidden");
       const customer=selectedManualCustomer();
       $("manualExistingCustomerInfo").textContent="";
+      $("manualExistingCustomerTypeWrap").classList.toggle("hidden",isNew||!customer);
       if(isNew) {
-        $("manualDeliveryType").disabled=false;
+        $("manualDeliveryType").disabled=$("manualCustomerType").value==="comercio";
         return;
       }
       if(!customer) { $("manualDeliveryAddress").value=""; $("manualDeliveryType").disabled=false; updateManualTotals(); return; }
       const isBusiness=customer.customer_type==="comercio";
-      $("manualExistingCustomerInfo").textContent="Tipo: "+(isBusiness?"Comercio":"Particular")+(isBusiness?" · Envío a domicilio sin cargo.":"");
+      $("manualExistingCustomerType").value=customer.customer_type||"particular";
+      $("manualExistingCustomerInfo").textContent=isBusiness?"Comercio · Envío a domicilio sin cargo.":"Cliente particular.";
       $("manualDeliveryType").value=isBusiness?"envio":$("manualDeliveryType").value;
       $("manualDeliveryType").disabled=isBusiness;
       $("manualDeliveryAddress").value=customer.address||"";
@@ -710,6 +719,22 @@
       updateManualTotals();
     });
     $("manualCustomerSelect").addEventListener("change",updateManualCustomerFields);
+    $("manualSaveCustomerType").addEventListener("click",async()=>{
+      const customer=selectedManualCustomer();if(!customer)return;
+      const button=$("manualSaveCustomerType");button.disabled=true;
+      try {
+        const nextType=$("manualExistingCustomerType").value;
+        const {error}=await db.from("customers").update({customer_type:nextType}).eq("id",customer.id);
+        if(error)throw error;
+        customer.customer_type=nextType;
+        updateManualCustomerFields();
+        showMessage($("manualOrderMessage"),"Tipo de cliente actualizado correctamente.","ok");
+        fillManualOrderOptions();
+        $("manualCustomerSelect").value=customer.id;
+      } catch(error) {
+        showMessage($("manualOrderMessage"),"No se pudo actualizar el tipo de cliente: "+error.message,"error");
+      } finally {button.disabled=false;}
+    });
     $("manualCustomerType").addEventListener("change",()=>{
       const isBusiness=$("manualCustomerType").value==="comercio";
       if(isBusiness){$("manualDeliveryType").value="envio";$("manualDeliveryType").disabled=true;}
