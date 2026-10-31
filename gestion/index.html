@@ -581,8 +581,9 @@
         const itemRows=manualCart.map(({display_name,display_detail,...item})=>({...item,order_id:order.id}));
         const {error:itemsError}=await db.from("order_items").insert(itemRows);
         if(itemsError)throw new Error("El pedido #"+order.order_number+" se creó, pero no se pudieron guardar sus productos: "+itemsError.message);
-        await db.from("order_status_history").insert({order_id:order.id,previous_status:null,new_status:"pedido_tomado",changed_by:userId,note:"Pedido creado manualmente"});
+        const {error:historyError}=await db.from("order_status_history").insert({order_id:order.id,previous_status:null,new_status:"pedido_tomado",changed_by:userId,note:"Pedido creado manualmente"});
         closeManualOrder();await loadData();
+        if(historyError) showMessage($("statusMessage"),"Pedido #"+order.order_number+" guardado, pero no se pudo registrar el historial: "+historyError.message,"error");
         showMessage($("statusMessage"),"Pedido #"+order.order_number+" guardado correctamente.","ok");
       } catch(error) {
         showMessage($("manualOrderMessage"),error.message||"No se pudo guardar el pedido.","error");
@@ -709,7 +710,12 @@
       updateManualTotals();
     });
     $("manualCustomerSelect").addEventListener("change",updateManualCustomerFields);
-    $("manualCustomerType").addEventListener("change",updateManualTotals);
+    $("manualCustomerType").addEventListener("change",()=>{
+      const isBusiness=$("manualCustomerType").value==="comercio";
+      if(isBusiness){$("manualDeliveryType").value="envio";$("manualDeliveryType").disabled=true;}
+      else $("manualDeliveryType").disabled=false;
+      updateManualTotals();
+    });
     $("manualDeliveryType").addEventListener("change",updateManualTotals);
     $("manualProductSelect").addEventListener("change",renderManualProductControls);
     $("manualAddProduct").addEventListener("click",()=>{
