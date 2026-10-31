@@ -70,6 +70,8 @@ create table if not exists public.customers (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   phone text not null,
+  customer_type text not null default 'particular'
+    check (customer_type in ('particular', 'comercio')),
   email text,
   address text,
   notes text not null default '',
