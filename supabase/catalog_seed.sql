@@ -8,17 +8,17 @@ begin;
 
 insert into public.categories (name, sort_order, active)
 values
-  ('Quesos Blandos', 1),
-  ('Quesos Semiduros', 2),
-  ('Quesos Por Porcion', 3),
-  ('Ralladitos', 4),
-  ('Untables y Dulce de Leche', 5),
-  ('Yogures y Leches', 6),
-  ('Cremas y Mantecas', 7),
-  ('Fiambres Piamontesa', 8),
-  ('Cortado en Fetas', 9),
-  ('Moriconi', 10),
-  ('Snacks Crunch', 11)
+  ('Quesos Blandos', 1, true),
+  ('Quesos Semiduros', 2, true),
+  ('Quesos Por Porcion', 3, true),
+  ('Ralladitos', 4, true),
+  ('Untables y Dulce de Leche', 5, true),
+  ('Yogures y Leches', 6, true),
+  ('Cremas y Mantecas', 7, true),
+  ('Fiambres Piamontesa', 8, true),
+  ('Cortado en Fetas', 9, true),
+  ('Moriconi', 10, true),
+  ('Snacks Crunch', 11, true)
 on conflict (name) do update
 set sort_order = excluded.sort_order,
     active = true,
