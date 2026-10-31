@@ -913,23 +913,30 @@ function alternarHorarios() {
     const boton = document.getElementById('botonHorarios');
     const mostrar = panel.hidden;
 
+    // Sacar el panel de los contenedores del encabezado para que
+    // position: fixed tome como referencia la ventana completa.
+    if (panel.parentElement !== document.body) {
+        document.body.appendChild(panel);
+    }
+
     panel.hidden = !mostrar;
     boton.setAttribute('aria-expanded', String(mostrar));
     boton.innerHTML = mostrar ? '✖ Ocultar horarios' : '🕒 Ver horarios de<br>pedidos y repartos';
 
     if (mostrar) {
-        const rect = boton.getBoundingClientRect();
-        panel.style.top = Math.max(8, rect.bottom + 8) + 'px';
-        panel.style.left = '50%';
-        panel.style.transform = 'translateX(-50%)';
-        panel.style.width = 'calc(100vw - 24px)';
-        panel.style.maxWidth = 'none';
+        panel.style.setProperty('position', 'fixed', 'important');
+        panel.style.setProperty('top', '50%', 'important');
+        panel.style.setProperty('left', '50%', 'important');
+        panel.style.setProperty('right', 'auto', 'important');
+        panel.style.setProperty('bottom', 'auto', 'important');
+        panel.style.setProperty('transform', 'translate(-50%, -50%)', 'important');
+        panel.style.setProperty('width', 'calc(100vw - 24px)', 'important');
+        panel.style.setProperty('max-width', '560px', 'important');
+        panel.style.setProperty('max-height', 'calc(100dvh - 32px)', 'important');
+        panel.style.setProperty('overflow-y', 'auto', 'important');
+        panel.style.setProperty('z-index', '2147483000', 'important');
     } else {
-        panel.style.top = '';
-        panel.style.left = '';
-        panel.style.transform = '';
-        panel.style.width = '';
-        panel.style.maxWidth = '';
+        ['position','top','left','right','bottom','transform','width','max-width','max-height','overflow-y','z-index'].forEach(prop => panel.style.removeProperty(prop));
     }
 }
 function mostrarAviso(mensaje) {
