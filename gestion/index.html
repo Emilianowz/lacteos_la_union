@@ -161,6 +161,16 @@
       $("kgPriceField").classList.toggle("hidden", !["weight","portion"].includes(mode));
       $("hundredPriceField").classList.toggle("hidden", mode !== "sliced");
       $("productUnit").placeholder = mode === "weight" ? "kg, horma, barra, pieza…" : mode === "portion" ? "porción" : mode === "sliced" ? "100 g" : "unidad";
+      if (!$("productId").value) {
+        const defaults = {
+          unit:{quantity_stepper:true,quantity_action:"unit"},
+          weight:{quantity_stepper:true,quantity_action:"weighted_piece"},
+          portion:{selectors:[{id:"monto",options:[{value:"1000",label:"$1.000"},{value:"1500",label:"$1.500"},{value:"2000",label:"$2.000"},{value:"2500",label:"$2.500"},{value:"3000",label:"$3.000"},{value:"5000",label:"$5.000"}]},{id:"gramos",options:[{value:"100",label:"100 gr"},{value:"250",label:"250 gr"},{value:"500",label:"500 gr"},{value:"1000",label:"1 kg"}]}]},
+          sliced:{selectors:[{id:"fetas_nuevo",options:[{value:"50",label:"50 g"},{value:"100",label:"100 g"},{value:"150",label:"150 g"},{value:"200",label:"200 g"},{value:"250",label:"250 g"},{value:"300",label:"300 g"},{value:"400",label:"400 g"},{value:"500",label:"500 g"}]}]}
+        };
+        $("productConfig").value=JSON.stringify(defaults[mode],null,2);
+        $("productUnit").value=mode==="weight"?"kg":mode==="portion"?"porción":mode==="sliced"?"100 g":"unidad";
+      }
     }
     function fillCategoryOptions(selectedId) {
       $("productCategory").innerHTML = "";
