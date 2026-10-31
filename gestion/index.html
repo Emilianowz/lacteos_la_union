@@ -39,6 +39,17 @@
     .pill{font-size:11px;font-weight:700;padding:5px 8px;border-radius:20px;background:#edf2f6;color:#36536b;white-space:nowrap}
     .pill.off{background:#fff0ef;color:#9a3b32}
     .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .form-grid{display:grid;grid-template-columns:1fr;gap:0 12px}
+    .form-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+    .form-actions button{flex:1;min-width:125px}
+    .edit-button{padding:8px 11px;font-size:12px;white-space:nowrap}
+    .item-main{min-width:0;flex:1}
+    .item-main strong{overflow-wrap:anywhere}
+    .field-help{font-size:12px;color:#66798a;line-height:1.4;margin:5px 0}
+    textarea{width:100%;min-height:105px;padding:12px;border:1px solid #cbd6e0;border-radius:10px;font:13px ui-monospace,monospace}
+    .checkline{display:flex;align-items:center;gap:9px;margin-top:14px;font-size:14px;font-weight:650}
+    .checkline input{width:20px;height:20px}
+    @media(min-width:560px){.form-grid{grid-template-columns:1fr 1fr}.form-grid .wide{grid-column:1/-1}}
     @media(min-width:600px){main{padding-top:26px}.stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
   </style>
 </head>
@@ -85,7 +96,27 @@
         <div id="ordersList" class="list"></div>
       </section>
       <section id="productsTab" class="panel hidden">
-        <h2>Catálogo</h2><p class="sub">Vista inicial de productos. Todavía no se pueden editar para proteger el catálogo hasta terminar las pruebas.</p>
+        <div class="row"><div><h2>Catálogo</h2><p class="sub" style="margin:4px 0 0">Administrá nombres, precios, categorías y disponibilidad.</p></div><button id="newProductButton" type="button">+ Agregar</button></div>
+        <div id="productFormPanel" class="panel hidden" style="margin:16px 0 8px;background:#f8fafc">
+          <h2 id="productFormTitle">Nuevo producto</h2>
+          <form id="productForm">
+            <input id="productId" type="hidden">
+            <div class="form-grid">
+              <div class="wide"><label for="productName">Nombre del producto</label><input id="productName" maxlength="180" required></div>
+              <div><label for="productCategory">Categoría</label><select id="productCategory" style="width:100%;padding:13px 12px;border:1px solid #cbd6e0;border-radius:10px;background:#fff;font:inherit" required></select></div>
+              <div><label for="productMode">Modalidad de venta</label><select id="productMode" style="width:100%;padding:13px 12px;border:1px solid #cbd6e0;border-radius:10px;background:#fff;font:inherit"><option value="unit">Por unidad</option><option value="weight">Por peso</option><option value="portion">Por porción</option><option value="sliced">Cortado en fetas</option></select></div>
+              <div><label for="productUnit">Unidad / presentación</label><input id="productUnit" maxlength="40" placeholder="unidad, horma, barra, pieza…"></div>
+              <div id="unitPriceField"><label for="productPrice">Precio por unidad ($)</label><input id="productPrice" type="number" min="0" step="0.01"></div>
+              <div id="kgPriceField" class="hidden"><label for="productKgPrice">Precio por kilo ($)</label><input id="productKgPrice" type="number" min="0" step="0.01"></div>
+              <div id="hundredPriceField" class="hidden"><label for="productHundredPrice">Precio cada 100 g ($)</label><input id="productHundredPrice" type="number" min="0" step="0.01"></div>
+              <div class="wide"><label for="productDescription">Descripción (opcional)</label><input id="productDescription" maxlength="500"></div>
+              <div class="wide"><label for="productConfig">Opciones de compra (configuración avanzada)</label><textarea id="productConfig" spellcheck="false"></textarea><p class="field-help">Se conserva la configuración actual al editar. Modificala solamente si necesitás cambiar selectores, porciones o cantidades. Debe ser JSON válido.</p></div>
+            </div>
+            <label class="checkline"><input id="productActive" type="checkbox" checked> Producto activo y visible</label>
+            <div id="productFormMessage" class="message hidden" role="status"></div>
+            <div class="form-actions"><button id="saveProductButton" type="submit">Guardar producto</button><button id="cancelProductButton" class="secondary" type="button">Cancelar</button></div>
+          </form>
+        </div>
         <div id="productsList" class="list"></div>
       </section>
     </section>
@@ -121,6 +152,109 @@
         el.append(left,pill); target.append(el);
       });
     }
+    let productsCache = [];
+    let categoriesCache = [];
+
+    function updatePriceFields() {
+      const mode = $("productMode").value;
+      $("unitPriceField").classList.toggle("hidden", mode !== "unit");
+      $("kgPriceField").classList.toggle("hidden", !["weight","portion"].includes(mode));
+      $("hundredPriceField").classList.toggle("hidden", mode !== "sliced");
+      $("productUnit").placeholder = mode === "weight" ? "kg, horma, barra, pieza…" : mode === "portion" ? "porción" : mode === "sliced" ? "100 g" : "unidad";
+    }
+    function fillCategoryOptions(selectedId) {
+      $("productCategory").innerHTML = "";
+      categoriesCache.filter(c => c.active || c.id === selectedId).forEach(c => {
+        const option = document.createElement("option");
+        option.value = c.id; option.textContent = c.name;
+        option.selected = c.id === selectedId;
+        $("productCategory").append(option);
+      });
+    }
+    function closeProductForm() {
+      $("productFormPanel").classList.add("hidden");
+      $("productForm").reset();
+      $("productId").value = "";
+      $("productFormMessage").className = "message hidden";
+    }
+    function openProductForm(product) {
+      $("productForm").reset();
+      $("productFormMessage").className = "message hidden";
+      $("productId").value = product?.id || "";
+      $("productFormTitle").textContent = product ? "Editar producto" : "Nuevo producto";
+      $("productName").value = product?.name || "";
+      $("productDescription").value = product?.description || "";
+      $("productMode").value = product?.sale_mode || "unit";
+      $("productUnit").value = product?.unit_label || (product?.sale_mode === "sliced" ? "100 g" : product?.sale_mode === "weight" ? "kg" : "unidad");
+      $("productPrice").value = product?.price ?? (product?.sale_mode === "unit" ? 0 : "");
+      $("productKgPrice").value = product?.price_per_kg ?? "";
+      $("productHundredPrice").value = product?.price_per_100g ?? "";
+      $("productActive").checked = product ? !!product.active : true;
+      $("productConfig").value = JSON.stringify(product?.selection_config || (product ? {} : {quantity_stepper:true,quantity_action:"unit"}), null, 2);
+      fillCategoryOptions(product?.category_id || categoriesCache.find(c=>c.active)?.id);
+      updatePriceFields();
+      $("productFormPanel").classList.remove("hidden");
+      $("productFormPanel").scrollIntoView({behavior:"smooth",block:"start"});
+    }
+    function renderProducts() {
+      const target = $("productsList");
+      target.innerHTML = "";
+      if (!productsCache.length) { target.innerHTML='<p class="muted">Todavía no se cargaron productos.</p>'; return; }
+      productsCache.forEach(p => {
+        const el=document.createElement("div");el.className="item";
+        const left=document.createElement("div");left.className="item-main";
+        const strong=document.createElement("strong");strong.textContent=p.name;
+        const category=categoriesCache.find(c=>c.id===p.category_id)?.name || "Sin categoría";
+        const detail=p.sale_mode==="weight" || p.sale_mode==="portion" ? money(p.price_per_kg)+" / kg" : p.sale_mode==="sliced" ? money(p.price_per_100g)+" / 100 g" : money(p.price);
+        const small=document.createElement("small");small.textContent=category+" · "+(p.unit_label||p.sale_mode)+" · "+detail;
+        left.append(strong,small);
+        const actions=document.createElement("div");actions.style.display="flex";actions.style.alignItems="center";actions.style.gap="7px";
+        const pill=document.createElement("span");pill.className="pill"+(p.active?"":" off");pill.textContent=p.active?"Activo":"Inactivo";
+        const edit=document.createElement("button");edit.type="button";edit.className="secondary edit-button";edit.textContent="Editar";edit.addEventListener("click",()=>openProductForm(p));
+        actions.append(pill,edit);el.append(left,actions);target.append(el);
+      });
+    }
+    async function saveProduct(event) {
+      event.preventDefault();
+      const button=$("saveProductButton");button.disabled=true;button.textContent="Guardando…";
+      try {
+        let config;
+        try { config=JSON.parse($("productConfig").value || "{}"); }
+        catch(e) { throw new Error("La configuración avanzada no tiene un formato JSON válido."); }
+        const mode=$("productMode").value;
+        const payload={
+          category_id:$("productCategory").value,
+          name:$("productName").value.trim(),
+          description:$("productDescription").value.trim(),
+          sale_mode:mode,
+          unit_label:$("productUnit").value.trim() || (mode==="sliced"?"100 g":mode==="weight"?"kg":mode==="portion"?"porción":"unidad"),
+          price:mode==="unit"?Number($("productPrice").value||0):0,
+          price_per_kg:["weight","portion"].includes(mode) && $("productKgPrice").value!==""?Number($("productKgPrice").value):null,
+          price_per_100g:mode==="sliced" && $("productHundredPrice").value!==""?Number($("productHundredPrice").value):null,
+          selection_config:config,
+          active:$("productActive").checked
+        };
+        if(!payload.name || !payload.category_id) throw new Error("Completá el nombre y la categoría.");
+        if(mode==="unit" && $("productPrice").value==="" || ["weight","portion"].includes(mode) && $("productKgPrice").value==="" || mode==="sliced" && $("productHundredPrice").value==="") throw new Error("Completá el precio correspondiente a la modalidad elegida.");
+        if([payload.price,payload.price_per_kg,payload.price_per_100g].some(v=>v!==null && (!Number.isFinite(v)||v<0))) throw new Error("Ingresá un precio válido, igual o mayor que cero.");
+        const id=$("productId").value;
+        let result;
+        if(id) result=await db.from("products").update(payload).eq("id",id).select("id").single();
+        else {
+          const slug=payload.name.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,35)||"producto";
+          result=await db.from("products").insert({...payload,sku:"app-"+slug+"-"+crypto.randomUUID().slice(0,8)}).select("id").single();
+        }
+        if(result.error) throw result.error;
+        closeProductForm();
+        await loadData();
+        showMessage($("statusMessage"),id?"Producto actualizado correctamente.":"Producto agregado correctamente.","ok");
+      } catch(error) {
+        showMessage($("productFormMessage"),error.message||"No se pudo guardar el producto.","error");
+      } finally {
+        button.disabled=false;button.textContent="Guardar producto";
+      }
+    }
+
     async function loadData() {
       showMessage($("statusMessage"),"Conectado. Consultando pedidos y catálogo…");
       const [ordersRes,productsRes,categoriesRes] = await Promise.all([
@@ -133,24 +267,16 @@
         showMessage($("statusMessage"),"Iniciaste sesión, pero hubo un problema al leer los datos: " + error.message,"error");
         return;
       }
-      const orders=ordersRes.data||[], products=productsRes.data||[], categories=categoriesRes.data||[];
+      const orders=ordersRes.data||[];
+      productsCache=productsRes.data||[];
+      categoriesCache=categoriesRes.data||[];
+      const products=productsCache, categories=categoriesCache;
       $("ordersCount").textContent=orders.length;
       $("productsCount").textContent=products.filter(p=>p.active).length;
       $("categoriesCount").textContent=categories.filter(c=>c.active).length;
       renderOrders($("recentOrders"),orders.slice(0,5));
       renderOrders($("ordersList"),orders);
-      $("productsList").innerHTML="";
-      if (!products.length) $("productsList").innerHTML='<p class="muted">Todavía no se cargaron productos.</p>';
-      products.forEach(p=>{
-        const el=document.createElement("div");el.className="item";
-        const left=document.createElement("div");
-        const strong=document.createElement("strong");strong.textContent=p.name;
-        const detail=p.sale_mode==="weight" ? money(p.price_per_kg)+" / kg" : p.sale_mode==="sliced" ? money(p.price_per_100g)+" / 100 g" : money(p.price);
-        const small=document.createElement("small");small.textContent=(p.unit_label||p.sale_mode)+" · "+detail;
-        left.append(strong,small);
-        const pill=document.createElement("span");pill.className="pill"+(p.active?"":" off");pill.textContent=p.active?"Activo":"Inactivo";
-        el.append(left,pill);$("productsList").append(el);
-      });
+      renderProducts();
       $("statusMessage").className="message hidden";
     }
     async function openSession(session) {
@@ -172,6 +298,10 @@
       await openSession(data.session);
     });
     $("logout").addEventListener("click",async()=>{await db.auth.signOut();location.reload();});
+    $("newProductButton").addEventListener("click",()=>openProductForm(null));
+    $("cancelProductButton").addEventListener("click",closeProductForm);
+    $("productMode").addEventListener("change",updatePriceFields);
+    $("productForm").addEventListener("submit",saveProduct);
     document.querySelectorAll("[data-tab]").forEach(btn=>btn.addEventListener("click",()=>{
       document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("active",b===btn));
       ["dashboard","orders","products"].forEach(t=>$(t+"Tab").classList.toggle("hidden",t!==btn.dataset.tab));
