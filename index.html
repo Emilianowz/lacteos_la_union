@@ -925,11 +925,12 @@ function alternarHorarios() {
 
     if (mostrar) {
         panel.style.setProperty('position', 'fixed', 'important');
-        panel.style.setProperty('top', '50%', 'important');
+        const rect = boton.getBoundingClientRect();
+        panel.style.setProperty('top', Math.max(8, rect.bottom + 8) + 'px', 'important');
         panel.style.setProperty('left', '50%', 'important');
         panel.style.setProperty('right', 'auto', 'important');
         panel.style.setProperty('bottom', 'auto', 'important');
-        panel.style.setProperty('transform', 'translate(-50%, -50%)', 'important');
+        panel.style.setProperty('transform', 'translateX(-50%)', 'important');
         panel.style.setProperty('width', 'calc(100vw - 24px)', 'important');
         panel.style.setProperty('max-width', '560px', 'important');
         panel.style.setProperty('max-height', 'calc(100dvh - 32px)', 'important');
