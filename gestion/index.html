@@ -54,6 +54,16 @@
     .order-product:last-child{border-bottom:0}
     .order-status-controls{display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-top:14px}
     .order-status-controls label{flex:1;min-width:160px;margin:0}
+    .manual-order{margin:14px 0;padding:15px;background:#f8fafc;border:1px solid #dfe7ee;border-radius:12px}
+    .manual-order h3{font-size:16px;margin:0 0 10px}
+    .manual-order select,.manual-order input,.manual-order textarea{width:100%;padding:12px;border:1px solid #cbd6e0;border-radius:10px;background:#fff;font:inherit;font-size:15px}
+    .manual-order textarea{min-height:72px}
+    .manual-row{display:grid;grid-template-columns:1fr;gap:0 12px}
+    .manual-cart-item{padding:10px 0;border-bottom:1px solid #e2e9ef;display:flex;justify-content:space-between;gap:10px;font-size:13px}
+    .manual-cart-item small{display:block;color:#657789;margin-top:3px}
+    .manual-total{font-weight:750;font-size:18px;margin-top:12px}
+    .manual-product-config{padding:10px;background:#eef4f8;border-radius:10px;margin-top:10px}
+    @media(min-width:560px){.manual-row{grid-template-columns:1fr 1fr}.manual-row .wide{grid-column:1/-1}}
     .order-status-controls select{width:100%;padding:12px;border:1px solid #cbd6e0;border-radius:10px;background:white;font:inherit}
     @media(min-width:560px){.detail-grid{grid-template-columns:1fr 1fr}}
     .item-main strong{overflow-wrap:anywhere}
@@ -104,7 +114,45 @@
         <div id="recentOrders" class="list"><p class="muted">Cargando…</p></div>
       </section>
       <section id="ordersTab" class="panel hidden">
-        <h2>Pedidos</h2><p class="sub">Consultá el detalle de cada pedido y actualizá su estado de preparación y entrega.</p>
+        <div class="row"><div><h2>Pedidos</h2><p class="sub" style="margin:4px 0 0">Cargá pedidos manuales y administrá los ya registrados.</p></div><button id="newOrderButton" type="button">+ Nuevo pedido</button></div>
+        <section id="manualOrderPanel" class="manual-order hidden">
+          <h3>Nuevo pedido manual</h3>
+          <form id="manualOrderForm">
+            <label for="manualCustomerSelect">Cliente existente</label>
+            <select id="manualCustomerSelect"><option value="">Seleccioná un cliente…</option></select>
+            <div class="form-actions" style="margin-top:8px"><button id="manualNewCustomerButton" class="secondary" type="button">+ Registrar cliente nuevo</button></div>
+            <div id="manualNewCustomerPanel" class="hidden">
+              <div class="manual-row">
+                <div><label for="manualCustomerName">Nombre / razón social</label><input id="manualCustomerName" maxlength="180"></div>
+                <div><label for="manualCustomerType">Tipo de cliente</label><select id="manualCustomerType"><option value="particular">Particular</option><option value="comercio">Comercio</option></select></div>
+                <div><label for="manualCustomerPhone">Teléfono</label><input id="manualCustomerPhone" maxlength="40"></div>
+                <div><label for="manualCustomerEmail">Correo (opcional)</label><input id="manualCustomerEmail" type="email" maxlength="180"></div>
+                <div class="wide"><label for="manualCustomerAddress">Domicilio</label><input id="manualCustomerAddress" maxlength="300"></div>
+              </div>
+            </div>
+            <div id="manualExistingCustomerInfo" class="field-help"></div>
+            <div class="manual-row">
+              <div><label for="manualDeliveryType">Entrega</label><select id="manualDeliveryType"><option value="envio">Envío a domicilio</option><option value="retiro">Retiro</option></select></div>
+              <div><label for="manualPayment">Forma de pago</label><select id="manualPayment"><option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option><option value="debito">Débito</option><option value="cuenta_corriente">Cuenta corriente</option></select></div>
+              <div class="wide"><label for="manualDeliveryAddress">Dirección de entrega</label><input id="manualDeliveryAddress" maxlength="300"></div>
+            </div>
+            <div class="manual-product-config">
+              <h3>Agregar productos</h3>
+              <label for="manualProductSelect">Producto del catálogo</label><select id="manualProductSelect"><option value="">Seleccioná un producto…</option></select>
+              <div id="manualProductControls"></div>
+              <div class="form-actions"><button id="manualAddProduct" type="button">Agregar al pedido</button></div>
+            </div>
+            <h3 style="margin-top:16px">Productos del pedido</h3>
+            <div id="manualCart"><p class="muted">Todavía no agregaste productos.</p></div>
+            <div id="manualSubtotal" class="manual-total">Subtotal: $0</div>
+            <div id="manualDeliveryFee" class="field-help"></div>
+            <div id="manualGrandTotal" class="manual-total">Total: $0</div>
+            <p class="field-help">Los productos cuyo importe depende del peso real quedan pendientes de pesaje y no se suman al total hasta conocer su peso.</p>
+            <label for="manualOrderNotes">Observaciones (opcional)</label><textarea id="manualOrderNotes" maxlength="1000"></textarea>
+            <div id="manualOrderMessage" class="message hidden" role="status"></div>
+            <div class="form-actions"><button id="manualSaveOrder" type="submit">Guardar pedido</button><button id="manualCancelOrder" class="secondary" type="button">Cancelar</button></div>
+          </form>
+        </section>
         <div id="ordersList" class="list"></div>
         <section id="orderDetailPanel" class="order-detail hidden" aria-live="polite">
           <div class="row"><h3 id="orderDetailTitle">Detalle del pedido</h3><button id="closeOrderDetail" class="secondary edit-button" type="button">Cerrar</button></div>
@@ -189,6 +237,9 @@
     let ordersCache = [];
     let selectedOrder = null;
     let categoriesCache = [];
+    let customersCache = [];
+    let manualCart = [];
+    const DELIVERY_FEE_PARTICULAR = 1500;
 
     function updatePriceFields() {
       const mode = $("productMode").value;
@@ -302,12 +353,13 @@
 
     async function loadData() {
       showMessage($("statusMessage"),"Conectado. Consultando pedidos y catálogo…");
-      const [ordersRes,productsRes,categoriesRes] = await Promise.all([
-        db.from("orders").select("id,order_number,customer_name,delivery_type,status,created_at,total").order("created_at",{ascending:false}).limit(50),
+      const [ordersRes,productsRes,categoriesRes,customersRes] = await Promise.all([
+        db.from("orders").select("id,order_number,customer_name,customer_phone,customer_email,customer_id,delivery_type,delivery_address,payment_method,source,status,subtotal,delivery_fee,total,notes,created_at").order("created_at",{ascending:false}).limit(50),
         db.from("products").select("id,name,category_id,description,sale_mode,unit_label,price,price_per_kg,price_per_100g,selection_config,active").order("name"),
-        db.from("categories").select("id,name,active").order("sort_order")
+        db.from("categories").select("id,name,active").order("sort_order"),
+        db.from("customers").select("id,name,phone,email,address,customer_type,notes").order("name")
       ]);
-      const error = ordersRes.error || productsRes.error || categoriesRes.error;
+      const error = ordersRes.error || productsRes.error || categoriesRes.error || customersRes.error;
       if (error) {
         showMessage($("statusMessage"),"Iniciaste sesión, pero hubo un problema al leer los datos: " + error.message,"error");
         return;
@@ -316,7 +368,9 @@
       ordersCache=orders;
       productsCache=productsRes.data||[];
       categoriesCache=categoriesRes.data||[];
+      customersCache=customersRes.data||[];
       const products=productsCache, categories=categoriesCache;
+      fillManualOrderOptions();
       $("ordersCount").textContent=orders.length;
       $("productsCount").textContent=products.filter(p=>p.active).length;
       $("categoriesCount").textContent=categories.filter(c=>c.active).length;
@@ -324,6 +378,212 @@
       renderOrders($("ordersList"),orders,true);
       renderProducts();
       $("statusMessage").className="message hidden";
+    }
+    function fillManualOrderOptions() {
+      const customerSelect=$("manualCustomerSelect"), productSelect=$("manualProductSelect");
+      const selectedCustomer=customerSelect.value, selectedProduct=productSelect.value;
+      customerSelect.innerHTML='<option value="">Seleccioná un cliente…</option>';
+      customersCache.forEach(c=>{
+        const opt=document.createElement("option");opt.value=c.id;
+        opt.textContent=c.name+" · "+(c.customer_type==="comercio"?"Comercio":"Particular")+" · "+c.phone;
+        customerSelect.append(opt);
+      });
+      customerSelect.value=selectedCustomer;
+      productSelect.innerHTML='<option value="">Seleccioná un producto…</option>';
+      productsCache.filter(p=>p.active).forEach(p=>{
+        const opt=document.createElement("option");opt.value=p.id;opt.textContent=p.name;
+        productSelect.append(opt);
+      });
+      productSelect.value=selectedProduct;
+    }
+    function selectedManualCustomer() {
+      return customersCache.find(c=>c.id===$("manualCustomerSelect").value)||null;
+    }
+    function updateManualCustomerFields() {
+      const isNew=!$("manualNewCustomerPanel").classList.contains("hidden");
+      const customer=selectedManualCustomer();
+      $("manualExistingCustomerInfo").textContent="";
+      if(isNew) {
+        $("manualDeliveryType").disabled=false;
+        return;
+      }
+      if(!customer) { $("manualDeliveryAddress").value=""; $("manualDeliveryType").disabled=false; updateManualTotals(); return; }
+      const isBusiness=customer.customer_type==="comercio";
+      $("manualExistingCustomerInfo").textContent="Tipo: "+(isBusiness?"Comercio":"Particular")+(isBusiness?" · Envío a domicilio sin cargo.":"");
+      $("manualDeliveryType").value=isBusiness?"envio":$("manualDeliveryType").value;
+      $("manualDeliveryType").disabled=isBusiness;
+      $("manualDeliveryAddress").value=customer.address||"";
+      updateManualTotals();
+    }
+    function manualPrice(n) {
+      return new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:2}).format(Number(n)||0);
+    }
+    function openManualOrder() {
+      $("manualOrderForm").reset();manualCart=[];
+      $("manualNewCustomerPanel").classList.add("hidden");
+      $("manualCustomerSelect").disabled=false;
+      $("manualDeliveryType").disabled=false;
+      $("manualProductControls").innerHTML="";
+      $("manualOrderMessage").className="message hidden";
+      fillManualOrderOptions();renderManualCart();
+      $("manualOrderPanel").classList.remove("hidden");
+      $("manualOrderPanel").scrollIntoView({behavior:"smooth",block:"start"});
+      updateManualCustomerFields();
+    }
+    function closeManualOrder() {
+      $("manualOrderPanel").classList.add("hidden");
+      $("manualOrderForm").reset();manualCart=[];
+      renderManualCart();
+    }
+    function renderManualProductControls() {
+      const target=$("manualProductControls");target.innerHTML="";
+      const p=productsCache.find(x=>x.id===$("manualProductSelect").value);
+      if(!p)return;
+      const cfg=p.selection_config||{};
+      const selectors=Array.isArray(cfg.selectors)?cfg.selectors:[];
+      const wrap=document.createElement("div");wrap.className="manual-row";
+      if(p.sale_mode==="unit" || (p.sale_mode==="weight" && cfg.quantity_stepper)) {
+        const box=document.createElement("div");box.innerHTML='<label for="manualProductQty">Cantidad</label><input id="manualProductQty" type="number" min="0.001" step="1" value="1">';
+        wrap.append(box);
+      } else if(p.sale_mode==="weight" && selectors.length) {
+        selectors.forEach((sel,i)=>{
+          const box=document.createElement("div"),label=document.createElement("label"),select=document.createElement("select");
+          label.textContent="Presentación";select.id="manualProductSelector"+i;
+          const empty=document.createElement("option");empty.value="";empty.textContent="Seleccioná…";select.append(empty);
+          (sel.options||[]).forEach(o=>{const opt=document.createElement("option");opt.value=o.value;opt.textContent=o.label;select.append(opt);});
+          box.append(label,select);wrap.append(box);
+        });
+      } else if(p.sale_mode==="weight") {
+        const box=document.createElement("div");box.innerHTML='<label for="manualProductQty">Peso (kg)</label><input id="manualProductQty" type="number" min="0.001" step="0.001" placeholder="Ej.: 1.250">';
+        wrap.append(box);
+      } else if(p.sale_mode==="sliced") {
+        const sel=selectors[0];
+        if(sel) {
+          const box=document.createElement("div"),label=document.createElement("label"),select=document.createElement("select");
+          label.textContent="Cantidad";select.id="manualProductSelector0";
+          const empty=document.createElement("option");empty.value="";empty.textContent="Seleccioná gramos…";select.append(empty);
+          (sel.options||[]).forEach(o=>{const opt=document.createElement("option");opt.value=o.value;opt.textContent=o.label;select.append(opt);});
+          box.append(label,select);wrap.append(box);
+        } else {
+          const box=document.createElement("div");box.innerHTML='<label for="manualProductQty">Gramos</label><input id="manualProductQty" type="number" min="1" step="1">';
+          wrap.append(box);
+        }
+      } else if(p.sale_mode==="portion") {
+        selectors.forEach((sel,i)=>{
+          const box=document.createElement("div"),label=document.createElement("label"),select=document.createElement("select");
+          label.textContent=i===0?"Importe estimado":"Peso estimado";select.id="manualProductSelector"+i;
+          const empty=document.createElement("option");empty.value="";empty.textContent="No seleccionar";select.append(empty);
+          (sel.options||[]).forEach(o=>{const opt=document.createElement("option");opt.value=o.value;opt.textContent=o.label;select.append(opt);});
+          box.append(label,select);wrap.append(box);
+        });
+      }
+      target.append(wrap);
+      const hint=document.createElement("p");hint.className="field-help";
+      hint.textContent=p.sale_mode==="weight"?"El importe final de este producto se confirma al pesarlo.":p.sale_mode==="portion"?"Elegí importe o peso estimado; si elegís peso, el sistema calcula un estimado con el precio por kilo.":"";
+      target.append(hint);
+    }
+    function readManualProductLine() {
+      const p=productsCache.find(x=>x.id===$("manualProductSelect").value);
+      if(!p)throw new Error("Seleccioná un producto.");
+      const cfg=p.selection_config||{},selectors=Array.isArray(cfg.selectors)?cfg.selectors:[];
+      let quantity=1,unitPrice=null,lineTotal=null,unitLabel=p.unit_label||"unidad",details={};
+      if(p.sale_mode==="unit") {
+        quantity=Number($("manualProductQty")?.value||0);
+        unitPrice=Number(p.price);lineTotal=quantity*unitPrice;
+      } else if(p.sale_mode==="sliced") {
+        const grams=Number($("manualProductSelector0")?.value||$("manualProductQty")?.value||0);
+        if(!grams)throw new Error("Seleccioná la cantidad en gramos.");
+        quantity=grams;unitLabel="g";unitPrice=Number(p.price_per_100g);lineTotal=grams/100*unitPrice;
+        details={grams};
+      } else if(p.sale_mode==="portion") {
+        const amount=Number($("manualProductSelector0")?.value||0);
+        const grams=Number($("manualProductSelector1")?.value||0);
+        if(amount>0 && grams>0)throw new Error("Elegí importe o peso estimado, no ambos.");
+        if(!amount && !grams)throw new Error("Seleccioná un importe o peso estimado.");
+        if(amount>0){quantity=1;unitLabel="porción";unitPrice=amount;lineTotal=amount;details={estimated_amount:amount};}
+        else {quantity=grams/1000;unitLabel="kg";unitPrice=Number(p.price_per_kg);lineTotal=quantity*unitPrice;details={estimated_grams:grams};}
+      } else if(p.sale_mode==="weight") {
+        if(selectors.length) {
+          const select=$("manualProductSelector0");
+          if(!select?.value)throw new Error("Seleccioná la presentación.");
+          const option=selectors[0].options.find(o=>o.value===select.value);
+          quantity=parseFloat(select.value)||1;unitLabel=p.unit_label||"unidad";
+          details={selection_value:select.value,selection_label:option?.label||select.value,pending_weighing:true};
+        } else {
+          quantity=Number($("manualProductQty")?.value||0);unitLabel="kg";
+          unitPrice=Number(p.price_per_kg);lineTotal=quantity*unitPrice;
+        }
+      }
+      if(!Number.isFinite(quantity)||quantity<=0)throw new Error("Ingresá una cantidad válida.");
+      if(lineTotal!==null && (!Number.isFinite(lineTotal)||lineTotal<0))throw new Error("No se pudo calcular el importe del producto.");
+      return {product_id:p.id,product_name_snapshot:p.name,sale_mode_snapshot:p.sale_mode,unit_label_snapshot:unitLabel,quantity,unit_price_snapshot:unitPrice,line_total:lineTotal,selection_details:details,display_name:p.name,display_detail:details.selection_label||details.estimated_grams? (details.selection_label||("Estimado "+details.estimated_grams+" g")) : quantity+" "+unitLabel};
+    }
+    function renderManualCart() {
+      const target=$("manualCart");target.innerHTML="";
+      if(!manualCart.length)target.innerHTML='<p class="muted">Todavía no agregaste productos.</p>';
+      manualCart.forEach((item,i)=>{
+        const line=document.createElement("div");line.className="manual-cart-item";
+        const left=document.createElement("div"),strong=document.createElement("strong"),small=document.createElement("small");
+        strong.textContent=item.display_name;small.textContent=item.display_detail+(item.line_total===null?" · Importe pendiente de pesaje":"");
+        left.append(strong,small);
+        const right=document.createElement("div");right.style.textAlign="right";
+        right.textContent=item.line_total===null?"A confirmar":manualPrice(item.line_total);
+        const remove=document.createElement("button");remove.type="button";remove.className="secondary edit-button";remove.textContent="Quitar";remove.addEventListener("click",()=>{manualCart.splice(i,1);renderManualCart();});
+        right.append(document.createElement("br"),remove);line.append(left,right);target.append(line);
+      });
+      updateManualTotals();
+    }
+    function updateManualTotals() {
+      const subtotal=manualCart.reduce((sum,item)=>sum+(item.line_total===null?0:Number(item.line_total)),0);
+      const customer=selectedManualCustomer();
+      const isNew=!$("manualNewCustomerPanel").classList.contains("hidden");
+      const type=isNew?$("manualCustomerType").value:customer?.customer_type||"particular";
+      const delivery=$("manualDeliveryType").value;
+      const fee=delivery==="envio" && type!=="comercio"?DELIVERY_FEE_PARTICULAR:0;
+      $("manualSubtotal").textContent="Subtotal: "+manualPrice(subtotal)+(manualCart.some(i=>i.line_total===null)?" + productos pendientes de pesaje":"");
+      $("manualDeliveryFee").textContent=delivery==="envio"?(fee===0?"Envío a domicilio sin cargo.":"Costo de envío: "+manualPrice(fee)):"Retiro en el local: sin cargo.";
+      $("manualGrandTotal").textContent="Total estimado: "+manualPrice(subtotal+fee);
+    }
+    async function saveManualOrder(event) {
+      event.preventDefault();
+      const button=$("manualSaveOrder");button.disabled=true;button.textContent="Guardando…";
+      try {
+        const isNew=!$("manualNewCustomerPanel").classList.contains("hidden");
+        let customer=selectedManualCustomer();
+        const userResult=await db.auth.getUser(),userId=userResult.data.user?.id;
+        if(!userId)throw new Error("La sesión expiró. Volvé a ingresar.");
+        if(isNew) {
+          const name=$("manualCustomerName").value.trim(),phone=$("manualCustomerPhone").value.trim();
+          if(!name||!phone)throw new Error("Completá el nombre y el teléfono del cliente.");
+          const payload={name,phone,email:$("manualCustomerEmail").value.trim()||null,address:$("manualCustomerAddress").value.trim()||null,customer_type:$("manualCustomerType").value,created_by:userId};
+          const created=await db.from("customers").insert(payload).select("id,name,phone,email,address,customer_type,notes").single();
+          if(created.error)throw created.error;
+          customer=created.data;customersCache.push(customer);fillManualOrderOptions();
+          $("manualCustomerSelect").value=customer.id;
+        } else if(!customer) throw new Error("Seleccioná un cliente o registrá uno nuevo.");
+        if(!manualCart.length)throw new Error("Agregá al menos un producto al pedido.");
+        const isBusiness=customer.customer_type==="comercio";
+        const delivery=isBusiness?"envio":$("manualDeliveryType").value;
+        const address=$("manualDeliveryAddress").value.trim()||customer.address||"";
+        if(delivery==="envio"&&!address)throw new Error("Completá la dirección de entrega.");
+        const subtotal=manualCart.reduce((sum,item)=>sum+(item.line_total===null?0:Number(item.line_total)),0);
+        const deliveryFee=delivery==="envio"&&!isBusiness?DELIVERY_FEE_PARTICULAR:0;
+        const {data:order,error:orderError}=await db.from("orders").insert({
+          customer_id:customer.id,customer_name:customer.name,customer_phone:customer.phone,customer_email:customer.email||null,
+          delivery_type:delivery,delivery_address:delivery==="envio"?address:null,payment_method:$("manualPayment").value,
+          source:"app",status:"pedido_tomado",subtotal,delivery_fee:deliveryFee,total:subtotal+deliveryFee,
+          notes:$("manualOrderNotes").value.trim(),created_by:userId
+        }).select("id,order_number").single();
+        if(orderError)throw orderError;
+        const itemRows=manualCart.map(({display_name,display_detail,...item})=>({...item,order_id:order.id}));
+        const {error:itemsError}=await db.from("order_items").insert(itemRows);
+        if(itemsError)throw new Error("El pedido #"+order.order_number+" se creó, pero no se pudieron guardar sus productos: "+itemsError.message);
+        await db.from("order_status_history").insert({order_id:order.id,previous_status:null,new_status:"pedido_tomado",changed_by:userId,note:"Pedido creado manualmente"});
+        closeManualOrder();await loadData();
+        showMessage($("statusMessage"),"Pedido #"+order.order_number+" guardado correctamente.","ok");
+      } catch(error) {
+        showMessage($("manualOrderMessage"),error.message||"No se pudo guardar el pedido.","error");
+      } finally {button.disabled=false;button.textContent="Guardar pedido";}
     }
     async function openOrderDetails(orderId) {
       const order = ordersCache.find(o => o.id === orderId);
@@ -436,6 +696,24 @@
       if(button) openOrderDetails(button.dataset.orderId);
     });
     $("saveOrderStatus").addEventListener("click",saveOrderStatus);
+    $("newOrderButton").addEventListener("click",openManualOrder);
+    $("manualCancelOrder").addEventListener("click",closeManualOrder);
+    $("manualNewCustomerButton").addEventListener("click",()=>{
+      $("manualNewCustomerPanel").classList.toggle("hidden");
+      const isNew=!$("manualNewCustomerPanel").classList.contains("hidden");
+      $("manualCustomerSelect").disabled=isNew;
+      if(isNew){$("manualCustomerSelect").value="";$("manualDeliveryType").disabled=false;$("manualDeliveryType").value="envio";}
+      updateManualTotals();
+    });
+    $("manualCustomerSelect").addEventListener("change",updateManualCustomerFields);
+    $("manualCustomerType").addEventListener("change",updateManualTotals);
+    $("manualDeliveryType").addEventListener("change",updateManualTotals);
+    $("manualProductSelect").addEventListener("change",renderManualProductControls);
+    $("manualAddProduct").addEventListener("click",()=>{
+      try {manualCart.push(readManualProductLine());renderManualCart();$("manualProductSelect").value="";$("manualProductControls").innerHTML="";}
+      catch(error){showMessage($("manualOrderMessage"),error.message,"error");}
+    });
+    $("manualOrderForm").addEventListener("submit",saveManualOrder);
     $("closeOrderDetail").addEventListener("click",()=>{
       selectedOrder=null; $("orderDetailPanel").classList.add("hidden");
     });
