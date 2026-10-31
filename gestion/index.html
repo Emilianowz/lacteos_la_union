@@ -44,6 +44,18 @@
     .form-actions button{flex:1;min-width:125px}
     .edit-button{padding:8px 11px;font-size:12px;white-space:nowrap}
     .item-main{min-width:0;flex:1}
+    .order-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+    .order-detail{margin-top:14px;padding:15px;background:#f8fafc;border:1px solid #dfe7ee;border-radius:12px}
+    .order-detail h3{font-size:16px;margin:0 0 10px}
+    .detail-grid{display:grid;grid-template-columns:1fr;gap:8px}
+    .detail-line{font-size:13px;color:#40576b;line-height:1.45;overflow-wrap:anywhere}
+    .detail-line strong{color:#183b59}
+    .order-product{padding:9px 0;border-bottom:1px solid #e5ebf0;font-size:13px}
+    .order-product:last-child{border-bottom:0}
+    .order-status-controls{display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-top:14px}
+    .order-status-controls label{flex:1;min-width:160px;margin:0}
+    .order-status-controls select{width:100%;padding:12px;border:1px solid #cbd6e0;border-radius:10px;background:white;font:inherit}
+    @media(min-width:560px){.detail-grid{grid-template-columns:1fr 1fr}}
     .item-main strong{overflow-wrap:anywhere}
     .field-help{font-size:12px;color:#66798a;line-height:1.4;margin:5px 0}
     textarea{width:100%;min-height:105px;padding:12px;border:1px solid #cbd6e0;border-radius:10px;font:13px ui-monospace,monospace}
@@ -92,8 +104,23 @@
         <div id="recentOrders" class="list"><p class="muted">Cargando…</p></div>
       </section>
       <section id="ordersTab" class="panel hidden">
-        <h2>Pedidos</h2><p class="sub">Vista inicial de los últimos 50 pedidos. La gestión de estados se habilitará en una etapa posterior.</p>
+        <h2>Pedidos</h2><p class="sub">Consultá el detalle de cada pedido y actualizá su estado de preparación y entrega.</p>
         <div id="ordersList" class="list"></div>
+        <section id="orderDetailPanel" class="order-detail hidden" aria-live="polite">
+          <div class="row"><h3 id="orderDetailTitle">Detalle del pedido</h3><button id="closeOrderDetail" class="secondary edit-button" type="button">Cerrar</button></div>
+          <div id="orderDetailContent"></div>
+          <div class="order-status-controls">
+            <label for="orderStatusSelect">Estado del pedido
+              <select id="orderStatusSelect">
+                <option value="pedido_tomado">Pedido tomado</option>
+                <option value="pedido_preparado">Pedido preparado</option>
+                <option value="pedido_entregado">Pedido entregado</option>
+              </select>
+            </label>
+            <button id="saveOrderStatus" type="button">Guardar estado</button>
+          </div>
+          <div id="orderDetailMessage" class="message hidden" role="status"></div>
+        </section>
       </section>
       <section id="productsTab" class="panel hidden">
         <div class="row"><div><h2>Catálogo</h2><p class="sub" style="margin:4px 0 0">Administrá nombres, precios, categorías y disponibilidad.</p></div><button id="newProductButton" type="button">+ Agregar</button></div>
@@ -139,20 +166,28 @@
     function statusLabel(s) {
       return ({pedido_tomado:"Tomado",pedido_preparado:"Preparado",pedido_entregado:"Entregado"})[s] || s || "—";
     }
-    function renderOrders(target, rows) {
+    function renderOrders(target, rows, allowActions=false) {
       target.innerHTML = "";
       if (!rows.length) { target.innerHTML = '<p class="muted">Todavía no hay pedidos registrados.</p>'; return; }
       rows.forEach(o => {
         const el = document.createElement("div"); el.className="item";
-        const left=document.createElement("div");
+        const left=document.createElement("div"); left.className="item-main";
         const strong=document.createElement("strong"); strong.textContent="#" + o.order_number + " · " + (o.customer_name || "Cliente");
         const small=document.createElement("small"); small.textContent=date(o.created_at) + " · " + (o.delivery_type==="envio"?"Envío":"Retiro");
         left.append(strong,small);
+        const actions=document.createElement("div"); actions.className="order-actions";
         const pill=document.createElement("span"); pill.className="pill"; pill.textContent=statusLabel(o.status);
-        el.append(left,pill); target.append(el);
+        actions.append(pill);
+        if(allowActions) {
+          const view=document.createElement("button"); view.type="button"; view.className="secondary edit-button"; view.textContent="Ver pedido"; view.dataset.orderId=o.id;
+          actions.append(view);
+        }
+        el.append(left,actions); target.append(el);
       });
     }
     let productsCache = [];
+    let ordersCache = [];
+    let selectedOrder = null;
     let categoriesCache = [];
 
     function updatePriceFields() {
@@ -278,6 +313,7 @@
         return;
       }
       const orders=ordersRes.data||[];
+      ordersCache=orders;
       productsCache=productsRes.data||[];
       categoriesCache=categoriesRes.data||[];
       const products=productsCache, categories=categoriesCache;
@@ -285,9 +321,97 @@
       $("productsCount").textContent=products.filter(p=>p.active).length;
       $("categoriesCount").textContent=categories.filter(c=>c.active).length;
       renderOrders($("recentOrders"),orders.slice(0,5));
-      renderOrders($("ordersList"),orders);
+      renderOrders($("ordersList"),orders,true);
       renderProducts();
       $("statusMessage").className="message hidden";
+    }
+    async function openOrderDetails(orderId) {
+      const order = ordersCache.find(o => o.id === orderId);
+      if (!order) return;
+      selectedOrder = order;
+      $("orderDetailTitle").textContent = "Pedido #" + order.order_number;
+      $("orderStatusSelect").value = order.status;
+      $("orderDetailContent").innerHTML = '<p class="muted">Cargando detalle…</p>';
+      $("orderDetailMessage").className = "message hidden";
+      $("orderDetailPanel").classList.remove("hidden");
+      $("orderDetailPanel").scrollIntoView({behavior:"smooth",block:"nearest"});
+      const {data:items,error} = await db.from("order_items")
+        .select("product_name_snapshot,sale_mode_snapshot,unit_label_snapshot,quantity,unit_price_snapshot,line_total,selection_details")
+        .eq("order_id",orderId).order("created_at");
+      if (selectedOrder?.id !== orderId) return;
+      if (error) {
+        $("orderDetailContent").textContent = "No se pudo cargar el detalle: " + error.message;
+        return;
+      }
+      const content = $("orderDetailContent");
+      content.innerHTML = "";
+      const grid = document.createElement("div"); grid.className="detail-grid";
+      const fields = [
+        ["Cliente",order.customer_name],["Teléfono",order.customer_phone],
+        ["Entrega",order.delivery_type==="envio"?"Envío a domicilio":"Retiro"],
+        ["Dirección",order.delivery_address || "No especificada"],
+        ["Forma de pago",order.payment_method || "No especificada"],
+        ["Origen",order.source==="web"?"Página web":"App de gestión"],
+        ["Fecha",date(order.created_at)],["Subtotal",money(order.subtotal)],
+        ["Costo de envío",money(order.delivery_fee)],["Total",money(order.total)]
+      ];
+      fields.forEach(([label,value]) => {
+        const line=document.createElement("div"); line.className="detail-line";
+        const strong=document.createElement("strong"); strong.textContent=label+": ";
+        line.append(strong,document.createTextNode(value ?? "—")); grid.append(line);
+      });
+      content.append(grid);
+      if(order.notes) {
+        const notes=document.createElement("p"); notes.className="detail-line"; notes.textContent="Observaciones: "+order.notes; content.append(notes);
+      }
+      const productsTitle=document.createElement("h3"); productsTitle.textContent="Productos"; productsTitle.style.marginTop="16px"; content.append(productsTitle);
+      if(!items?.length) {
+        const empty=document.createElement("p"); empty.className="muted"; empty.textContent="Este pedido no tiene artículos registrados."; content.append(empty);
+      } else {
+        items.forEach(item => {
+          const line=document.createElement("div"); line.className="order-product";
+          const name=document.createElement("strong"); name.textContent=item.product_name_snapshot;
+          const detail=document.createElement("div");
+          const quantity=Number(item.quantity);
+          detail.textContent=quantity+" "+(item.unit_label_snapshot||"")+" · "+money(item.line_total);
+          line.append(name,detail);
+          if(item.selection_details && Object.keys(item.selection_details).length) {
+            const extra=document.createElement("small"); extra.textContent=JSON.stringify(item.selection_details); line.append(extra);
+          }
+          content.append(line);
+        });
+      }
+    }
+    async function saveOrderStatus() {
+      if(!selectedOrder) return;
+      const button=$("saveOrderStatus"); button.disabled=true; button.textContent="Guardando…";
+      const nextStatus=$("orderStatusSelect").value;
+      try {
+        if(nextStatus===selectedOrder.status) {
+          showMessage($("orderDetailMessage"),"El pedido ya tiene ese estado.","ok");
+          return;
+        }
+        const previousStatus=selectedOrder.status;
+        const {error:updateError}=await db.from("orders").update({status:nextStatus}).eq("id",selectedOrder.id);
+        if(updateError) throw updateError;
+        const {error:historyError}=await db.from("order_status_history").insert({
+          order_id:selectedOrder.id,previous_status:previousStatus,new_status:nextStatus,
+          changed_by:(await db.auth.getUser()).data.user?.id || null
+        });
+        selectedOrder.status=nextStatus;
+        const cached=ordersCache.find(o=>o.id===selectedOrder.id); if(cached) cached.status=nextStatus;
+        renderOrders($("ordersList"),ordersCache,true);
+        renderOrders($("recentOrders"),ordersCache.slice(0,5));
+        if(historyError) {
+          showMessage($("orderDetailMessage"),"El estado se actualizó, pero no se pudo guardar el historial: "+historyError.message,"error");
+        } else {
+          showMessage($("orderDetailMessage"),"Estado actualizado correctamente.","ok");
+        }
+      } catch(error) {
+        showMessage($("orderDetailMessage"),"No se pudo actualizar el estado: "+(error.message||"Error desconocido"),"error");
+      } finally {
+        button.disabled=false; button.textContent="Guardar estado";
+      }
     }
     async function openSession(session) {
       $("login").classList.add("hidden");$("app").classList.remove("hidden");
@@ -306,6 +430,14 @@
       btn.disabled=false;btn.textContent="Ingresar";
       if(error){showMessage($("loginMessage"),"No se pudo iniciar sesión: "+error.message,"error");return;}
       await openSession(data.session);
+    });
+    $("ordersList").addEventListener("click",e=>{
+      const button=e.target.closest("button[data-order-id]");
+      if(button) openOrderDetails(button.dataset.orderId);
+    });
+    $("saveOrderStatus").addEventListener("click",saveOrderStatus);
+    $("closeOrderDetail").addEventListener("click",()=>{
+      selectedOrder=null; $("orderDetailPanel").classList.add("hidden");
     });
     $("logout").addEventListener("click",async()=>{await db.auth.signOut();location.reload();});
     $("newProductButton").addEventListener("click",()=>openProductForm(null));
