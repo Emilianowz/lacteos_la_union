@@ -509,6 +509,9 @@
           const option=selectors[0].options.find(o=>o.value===select.value);
           quantity=parseFloat(select.value)||1;unitLabel=p.unit_label||"unidad";
           details={selection_value:select.value,selection_label:option?.label||select.value,pending_weighing:true};
+        } else if(cfg.quantity_action==="weighted_piece") {
+          quantity=Number($("manualProductQty")?.value||0);unitLabel=p.unit_label||"pieza";
+          details={pending_weighing:true};
         } else {
           quantity=Number($("manualProductQty")?.value||0);unitLabel="kg";
           unitPrice=Number(p.price_per_kg);lineTotal=quantity*unitPrice;
