@@ -269,7 +269,7 @@
       showMessage($("statusMessage"),"Conectado. Consultando pedidos y catálogo…");
       const [ordersRes,productsRes,categoriesRes] = await Promise.all([
         db.from("orders").select("id,order_number,customer_name,delivery_type,status,created_at,total").order("created_at",{ascending:false}).limit(50),
-        db.from("products").select("id,name,description,sale_mode,unit_label,price,price_per_kg,price_per_100g,active").order("name"),
+        db.from("products").select("id,name,category_id,description,sale_mode,unit_label,price,price_per_kg,price_per_100g,active").order("name"),
         db.from("categories").select("id,name,active").order("sort_order")
       ]);
       const error = ordersRes.error || productsRes.error || categoriesRes.error;
