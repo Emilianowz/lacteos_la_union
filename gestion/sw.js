@@ -1,4 +1,4 @@
-const CACHE_NAME = "la-union-gestion-v4";
+const CACHE_NAME = "la-union-gestion-v5";
 const APP_SHELL = ["./", "./manifest.webmanifest"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
