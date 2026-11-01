@@ -160,6 +160,11 @@
             <div class="form-actions"><button id="manualSaveOrder" type="submit">Guardar pedido</button><button id="manualCancelOrder" class="secondary" type="button">Cancelar</button></div>
           </form>
         </section>
+        <div class="manual-row" style="margin-top:16px">
+          <div><label for="orderSearch">Buscar pedido o cliente</label><input id="orderSearch" type="search" placeholder="Número o nombre del cliente"></div>
+          <div><label for="orderStatusFilter">Filtrar por estado</label><select id="orderStatusFilter"><option value="todos">Todos los estados</option><option value="pedido_tomado">Pendientes de preparar</option><option value="pedido_preparado">Preparados</option><option value="pedido_entregado">Entregados</option></select></div>
+        </div>
+        <p id="ordersFilterCount" class="field-help"></p>
         <div id="ordersList" class="list"></div>
         <section id="orderDetailPanel" class="order-detail hidden" aria-live="polite">
           <div class="row"><h3 id="orderDetailTitle">Detalle del pedido</h3><div class="order-actions"><button id="editOrderButton" class="edit-button" type="button">Editar pedido</button><button id="closeOrderDetail" class="secondary edit-button" type="button">Cerrar</button></div></div>
@@ -301,6 +306,17 @@
       $("productFormPanel").classList.remove("hidden");
       $("productFormPanel").scrollIntoView({behavior:"smooth",block:"start"});
     }
+    function renderFilteredOrders() {
+      const query=$("orderSearch").value.trim().toLocaleLowerCase("es-AR");
+      const status=$("orderStatusFilter").value;
+      const filtered=ordersCache.filter(order=>{
+        const matchesStatus=status==="todos"||order.status===status;
+        const searchable=[order.order_number,order.customer_name,order.customer_phone].join(" ").toLocaleLowerCase("es-AR");
+        return matchesStatus&&(!query||searchable.includes(query));
+      });
+      $("ordersFilterCount").textContent=filtered.length+" de "+ordersCache.length+" pedidos";
+      renderOrders($("ordersList"),filtered,true);
+    }
     function renderProducts() {
       const target = $("productsList");
       target.innerHTML = "";
@@ -384,7 +400,7 @@
       $("productsCount").textContent=products.filter(p=>p.active).length;
       $("categoriesCount").textContent=categories.filter(c=>c.active).length;
       renderOrders($("recentOrders"),orders.slice(0,5));
-      renderOrders($("ordersList"),orders,true);
+      renderFilteredOrders();
       renderProducts();
       $("statusMessage").className="message hidden";
     }
@@ -786,7 +802,7 @@
         });
         selectedOrder.status=nextStatus;
         const cached=ordersCache.find(o=>o.id===selectedOrder.id); if(cached) cached.status=nextStatus;
-        renderOrders($("ordersList"),ordersCache,true);
+        renderFilteredOrders();
         renderOrders($("recentOrders"),ordersCache.slice(0,5));
         if(historyError) {
           showMessage($("orderDetailMessage"),"El estado se actualizó, pero no se pudo guardar el historial: "+historyError.message,"error");
@@ -817,6 +833,8 @@
       if(error){showMessage($("loginMessage"),"No se pudo iniciar sesión: "+error.message,"error");return;}
       await openSession(data.session);
     });
+    $("orderSearch").addEventListener("input",renderFilteredOrders);
+    $("orderStatusFilter").addEventListener("change",renderFilteredOrders);
     $("ordersList").addEventListener("click",e=>{
       const button=e.target.closest("button[data-order-id]");
       if(button) openOrderDetails(button.dataset.orderId);
