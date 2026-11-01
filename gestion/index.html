@@ -200,6 +200,7 @@
           <div id="routePrintArea">
             <div class="route-print-head"><h2>Hoja de ruta · Lácteos La Unión</h2><div id="routePrintMeta" class="route-print-meta"></div></div>
             <h3 style="font-size:15px;margin:14px 0 4px">Orden de visitas</h3>
+            <div id="routeMapActions" class="no-print" style="margin:10px 0 14px"></div>
             <div id="routeStops"><p class="muted">Todavía no seleccionaste pedidos.</p></div>
           </div>
           <div class="form-actions no-print"><button id="printRouteButton" type="button">Imprimir hoja de ruta</button></div>
@@ -385,6 +386,18 @@
       });
       const selected=routeOrderIds.map(id=>ordersCache.find(o=>o.id===id)).filter(Boolean);
       $("routePrintMeta").textContent="Fecha: "+($("routeDate").value||"Sin fecha")+" · Paradas: "+selected.length+($("routeNotes").value.trim()?" · Observaciones: "+$("routeNotes").value.trim():"");
+      const mapActions=$("routeMapActions");mapActions.innerHTML="";
+      const validStops=selected.filter(o=>(o.delivery_address||"").trim());
+      if(validStops.length){
+        const last=validStops[validStops.length-1];
+        const params=new URLSearchParams({api:"1",destination:last.delivery_address,travelmode:"driving"});
+        if(validStops.length>1)params.set("waypoints",validStops.slice(0,-1).map(o=>o.delivery_address).join("|"));
+        const routeLink=document.createElement("a");routeLink.href="https://www.google.com/maps/dir/?"+params.toString();routeLink.target="_blank";routeLink.rel="noopener noreferrer";routeLink.textContent="Abrir recorrido completo en Google Maps";routeLink.style.cssText="display:inline-block;padding:11px 14px;background:#164d7b;color:white;border-radius:10px;text-decoration:none;font-weight:650";
+        mapActions.append(routeLink);
+        const hint=document.createElement("p");hint.className="field-help";hint.textContent="Google Maps tomará tu ubicación actual como punto de partida y respetará el orden de las paradas seleccionadas.";mapActions.append(hint);
+      }
+      const missing=selected.length-validStops.length;
+      if(missing){const warning=document.createElement("p");warning.className="field-help";warning.textContent=missing+" pedido(s) sin dirección: no se incluirán en el recorrido del mapa.";mapActions.append(warning);}
       const stops=$("routeStops");stops.innerHTML="";
       if(!selected.length){stops.innerHTML='<p class="muted">Todavía no seleccionaste pedidos.</p>';return;}
       selected.forEach((order,index)=>{
@@ -394,6 +407,9 @@
         name.textContent="#"+order.order_number+" · "+(order.customer_name||"Cliente");
         small.textContent="Dirección: "+(order.delivery_address||"Sin dirección")+"\nTeléfono: "+(order.customer_phone||"Sin teléfono")+"\nEstado: "+statusLabel(order.status);
         small.style.whiteSpace="pre-line";info.append(name,small);
+        if((order.delivery_address||"").trim()){
+          const nav=document.createElement("a");nav.href="https://www.google.com/maps/dir/?"+new URLSearchParams({api:"1",destination:order.delivery_address,travelmode:"driving"}).toString();nav.target="_blank";nav.rel="noopener noreferrer";nav.textContent="Cómo llegar";nav.style.cssText="display:inline-block;margin-top:7px;color:#164d7b;font-size:13px;font-weight:650";info.append(nav);
+        }
         const actions=document.createElement("div");actions.className="route-stop-actions no-print";
         [["↑",-1],["↓",1]].forEach(([symbol,delta])=>{
           const button=document.createElement("button");button.type="button";button.className="secondary";button.textContent=symbol;button.disabled=index+delta<0||index+delta>=selected.length;
