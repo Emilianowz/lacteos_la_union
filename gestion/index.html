@@ -116,7 +116,7 @@
       <section id="ordersTab" class="panel hidden">
         <div class="row"><div><h2>Pedidos</h2><p class="sub" style="margin:4px 0 0">Cargá pedidos manuales y administrá los ya registrados.</p></div><button id="newOrderButton" type="button">+ Nuevo pedido</button></div>
         <section id="manualOrderPanel" class="manual-order hidden">
-          <h3>Nuevo pedido manual</h3>
+          <h3 id="manualOrderTitle">Nuevo pedido manual</h3>
           <form id="manualOrderForm">
             <label for="manualCustomerSelect">Cliente existente</label>
             <select id="manualCustomerSelect"><option value="">Seleccioná un cliente…</option></select>
@@ -162,7 +162,7 @@
         </section>
         <div id="ordersList" class="list"></div>
         <section id="orderDetailPanel" class="order-detail hidden" aria-live="polite">
-          <div class="row"><h3 id="orderDetailTitle">Detalle del pedido</h3><button id="closeOrderDetail" class="secondary edit-button" type="button">Cerrar</button></div>
+          <div class="row"><h3 id="orderDetailTitle">Detalle del pedido</h3><div class="order-actions"><button id="editOrderButton" class="edit-button" type="button">Editar pedido</button><button id="closeOrderDetail" class="secondary edit-button" type="button">Cerrar</button></div></div>
           <div id="orderDetailContent"></div>
           <div class="order-status-controls">
             <label for="orderStatusSelect">Estado del pedido
@@ -246,6 +246,8 @@
     let categoriesCache = [];
     let customersCache = [];
     let manualCart = [];
+    let editingOrderId = null;
+    let editingOrderItemIds = [];
     const DELIVERY_FEE_PARTICULAR = 1500;
 
     function updatePriceFields() {
@@ -428,6 +430,8 @@
       return new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:2}).format(Number(n)||0);
     }
     function openManualOrder() {
+      editingOrderId=null;editingOrderItemIds=[];
+      $("manualOrderTitle").textContent="Nuevo pedido manual";$("manualSaveOrder").textContent="Guardar pedido";
       $("manualOrderForm").reset();manualCart=[];
       $("manualNewCustomerPanel").classList.add("hidden");
       $("manualCustomerSelect").disabled=false;
@@ -441,6 +445,8 @@
     }
     function closeManualOrder() {
       $("manualOrderPanel").classList.add("hidden");
+      editingOrderId=null;editingOrderItemIds=[];
+      $("manualOrderTitle").textContent="Nuevo pedido manual";$("manualSaveOrder").textContent="Guardar pedido";
       $("manualOrderForm").reset();manualCart=[];
       renderManualCart();
     }
@@ -565,6 +571,7 @@
         const userResult=await db.auth.getUser(),userId=userResult.data.user?.id;
         if(!userId)throw new Error("La sesión expiró. Volvé a ingresar.");
         if(isNew) {
+          if(editingOrderId)throw new Error("No se puede cambiar el cliente desde la edición de un pedido.");
           const name=$("manualCustomerName").value.trim(),phone=$("manualCustomerPhone").value.trim();
           if(!name||!phone)throw new Error("Completá el nombre y el teléfono del cliente.");
           const payload={name,phone,email:$("manualCustomerEmail").value.trim()||null,address:$("manualCustomerAddress").value.trim()||null,customer_type:$("manualCustomerType").value,created_by:userId};
@@ -572,7 +579,7 @@
           if(created.error)throw created.error;
           customer=created.data;customersCache.push(customer);fillManualOrderOptions();
           $("manualCustomerSelect").value=customer.id;
-        } else if(!customer) throw new Error("Seleccioná un cliente o registrá uno nuevo.");
+        } else if(!customer) throw new Error("Seleccioná un cliente.");
         if(!manualCart.length)throw new Error("Agregá al menos un producto al pedido.");
         const isBusiness=customer.customer_type==="comercio";
         const delivery=isBusiness?"envio":$("manualDeliveryType").value;
@@ -580,23 +587,92 @@
         if(delivery==="envio"&&!address)throw new Error("Completá la dirección de entrega.");
         const subtotal=manualCart.reduce((sum,item)=>sum+(item.line_total===null?0:Number(item.line_total)),0);
         const deliveryFee=delivery==="envio"&&!isBusiness?DELIVERY_FEE_PARTICULAR:0;
-        const {data:order,error:orderError}=await db.from("orders").insert({
+        const orderPayload={
           customer_id:customer.id,customer_name:customer.name,customer_phone:customer.phone,customer_email:customer.email||null,
           delivery_type:delivery,delivery_address:delivery==="envio"?address:null,payment_method:$("manualPayment").value,
-          source:"app",status:"pedido_tomado",subtotal,delivery_fee:deliveryFee,total:subtotal+deliveryFee,
-          notes:$("manualOrderNotes").value.trim(),created_by:userId
-        }).select("id,order_number").single();
-        if(orderError)throw orderError;
-        const itemRows=manualCart.map(({display_name,display_detail,...item})=>({...item,order_id:order.id}));
-        const {error:itemsError}=await db.from("order_items").insert(itemRows);
-        if(itemsError)throw new Error("El pedido #"+order.order_number+" se creó, pero no se pudieron guardar sus productos: "+itemsError.message);
-        const {error:historyError}=await db.from("order_status_history").insert({order_id:order.id,previous_status:null,new_status:"pedido_tomado",changed_by:userId,note:"Pedido creado manualmente"});
-        closeManualOrder();await loadData();
-        if(historyError) showMessage($("statusMessage"),"Pedido #"+order.order_number+" guardado, pero no se pudo registrar el historial: "+historyError.message,"error");
-        showMessage($("statusMessage"),"Pedido #"+order.order_number+" guardado correctamente.","ok");
+          subtotal,delivery_fee:deliveryFee,total:subtotal+deliveryFee,notes:$("manualOrderNotes").value.trim()
+        };
+        if(editingOrderId) {
+          const {error:updateError}=await db.from("orders").update(orderPayload).eq("id",editingOrderId);
+          if(updateError)throw updateError;
+          const rowsToSave=manualCart.map(({display_name,display_detail,...item})=>({...item,order_id:editingOrderId}));
+          const existingRows=rowsToSave.filter(item=>item.id);
+          const newRows=rowsToSave.filter(item=>!item.id);
+          for(const item of existingRows) {
+            const {id,...payload}=item;
+            const {error}=await db.from("order_items").update(payload).eq("id",id).eq("order_id",editingOrderId);
+            if(error)throw new Error("Los datos generales se actualizaron, pero no se pudo modificar un producto: "+error.message);
+          }
+          if(newRows.length) {
+            const {error}=await db.from("order_items").insert(newRows);
+            if(error)throw new Error("El pedido se actualizó, pero no se pudieron agregar los productos nuevos: "+error.message);
+          }
+          const keptIds=existingRows.map(item=>item.id);
+          const removedIds=editingOrderItemIds.filter(id=>!keptIds.includes(id));
+          if(removedIds.length) {
+            const {error}=await db.from("order_items").delete().eq("order_id",editingOrderId).in("id",removedIds);
+            if(error)throw new Error("El pedido se actualizó, pero no se pudieron quitar algunos productos: "+error.message);
+          }
+          const orderNumber=ordersCache.find(o=>o.id===editingOrderId)?.order_number;
+          closeManualOrder();await loadData();
+          showMessage($("statusMessage"),"Pedido #"+orderNumber+" actualizado correctamente.","ok");
+        } else {
+          const {data:order,error:orderError}=await db.from("orders").insert({
+            ...orderPayload,source:"app",status:"pedido_tomado",created_by:userId
+          }).select("id,order_number").single();
+          if(orderError)throw orderError;
+          const itemRows=manualCart.map(({display_name,display_detail,...item})=>({...item,order_id:order.id}));
+          const {error:itemsError}=await db.from("order_items").insert(itemRows);
+          if(itemsError)throw new Error("El pedido #"+order.order_number+" se creó, pero no se pudieron guardar sus productos: "+itemsError.message);
+          const {error:historyError}=await db.from("order_status_history").insert({order_id:order.id,previous_status:null,new_status:"pedido_tomado",changed_by:userId,note:"Pedido creado manualmente"});
+          closeManualOrder();await loadData();
+          if(historyError) showMessage($("statusMessage"),"Pedido #"+order.order_number+" guardado, pero no se pudo registrar el historial: "+historyError.message,"error");
+          showMessage($("statusMessage"),"Pedido #"+order.order_number+" guardado correctamente.","ok");
+        }
       } catch(error) {
         showMessage($("manualOrderMessage"),error.message||"No se pudo guardar el pedido.","error");
-      } finally {button.disabled=false;button.textContent="Guardar pedido";}
+      } finally {button.disabled=false;button.textContent=editingOrderId?"Guardar cambios":"Guardar pedido";}
+    }
+    async function openOrderForEditing() {
+      if(!selectedOrder)return;
+      const order=selectedOrder;
+      const {data:items,error}=await db.from("order_items").select("*").eq("order_id",order.id).order("created_at");
+      if(error){showMessage($("orderDetailMessage"),"No se pudieron cargar los productos para editar: "+error.message,"error");return;}
+      if(!items?.length){showMessage($("orderDetailMessage"),"Este pedido no tiene productos para editar. Podés agregar uno nuevo desde la carga manual.","error");return;}
+      editingOrderId=order.id;editingOrderItemIds=items.map(item=>item.id);
+      $("manualOrderForm").reset();
+      $("manualOrderTitle").textContent="Editar pedido #"+order.order_number;
+      $("manualSaveOrder").textContent="Guardar cambios";
+      $("manualNewCustomerPanel").classList.add("hidden");
+      $("manualCustomerSelect").disabled=false;
+      fillManualOrderOptions();
+      $("manualCustomerSelect").value=order.customer_id||"";
+      if(!$("manualCustomerSelect").value){
+        editingOrderId=null;editingOrderItemIds=[];
+        showMessage($("orderDetailMessage"),"No se encontró el cliente asociado a este pedido en la lista de clientes. No se hicieron cambios.","error");return;
+      }
+      updateManualCustomerFields();
+      $("manualDeliveryType").value=order.delivery_type||"envio";
+      $("manualDeliveryType").disabled=selectedManualCustomer()?.customer_type==="comercio";
+      $("manualPayment").value=order.payment_method||"efectivo";
+      $("manualDeliveryAddress").value=order.delivery_address||selectedManualCustomer()?.address||"";
+      $("manualOrderNotes").value=order.notes||"";
+      manualCart=items.map(item=>{
+        const details=item.selection_details||{};
+        const detail=details.selection_label || (details.estimated_grams ? "Estimado "+details.estimated_grams+" g" : Number(item.quantity)+" "+(item.unit_label_snapshot||""));
+        return {
+          id:item.id,product_id:item.product_id,product_name_snapshot:item.product_name_snapshot,
+          sale_mode_snapshot:item.sale_mode_snapshot,unit_label_snapshot:item.unit_label_snapshot,
+          quantity:Number(item.quantity),unit_price_snapshot:item.unit_price_snapshot,
+          line_total:item.line_total===null?null:Number(item.line_total),selection_details:details,
+          display_name:item.product_name_snapshot,display_detail:detail
+        };
+      });
+      renderManualCart();
+      $("manualOrderMessage").className="message hidden";
+      $("orderDetailPanel").classList.add("hidden");
+      $("manualOrderPanel").classList.remove("hidden");
+      $("manualOrderPanel").scrollIntoView({behavior:"smooth",block:"start"});
     }
     async function openOrderDetails(orderId) {
       const order = ordersCache.find(o => o.id === orderId);
@@ -609,7 +685,7 @@
       $("orderDetailPanel").classList.remove("hidden");
       $("orderDetailPanel").scrollIntoView({behavior:"smooth",block:"nearest"});
       const {data:items,error} = await db.from("order_items")
-        .select("product_name_snapshot,sale_mode_snapshot,unit_label_snapshot,quantity,unit_price_snapshot,line_total,selection_details")
+        .select("id,product_id,product_name_snapshot,sale_mode_snapshot,unit_label_snapshot,quantity,unit_price_snapshot,line_total,selection_details")
         .eq("order_id",orderId).order("created_at");
       if (selectedOrder?.id !== orderId) return;
       if (error) {
@@ -709,6 +785,7 @@
       if(button) openOrderDetails(button.dataset.orderId);
     });
     $("saveOrderStatus").addEventListener("click",saveOrderStatus);
+    $("editOrderButton").addEventListener("click",openOrderForEditing);
     $("newOrderButton").addEventListener("click",openManualOrder);
     $("manualCancelOrder").addEventListener("click",closeManualOrder);
     $("manualNewCustomerButton").addEventListener("click",()=>{
