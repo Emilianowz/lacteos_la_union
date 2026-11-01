@@ -72,6 +72,26 @@
     .checkline{display:flex;align-items:center;gap:9px;margin-top:14px;font-size:14px;font-weight:650}
     .checkline input{width:20px;height:20px}
     @media(min-width:560px){.form-grid{grid-template-columns:1fr 1fr}.form-grid .wide{grid-column:1/-1}}
+    .route-panel{margin-top:16px;padding:15px;border:1px solid #dce5ec;border-radius:12px;background:#f8fafc}
+    .route-candidate{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #e5ebf0}
+    .route-candidate input{width:20px;height:20px;flex:0 0 auto;margin:2px 0}
+    .route-stop{padding:12px 0;border-bottom:1px solid #dce5ec;display:grid;grid-template-columns:34px 1fr auto;gap:9px;align-items:start}
+    .route-number{font-weight:800;color:#123b63;font-size:18px}
+    .route-stop small{display:block;color:#657789;line-height:1.45;margin-top:4px}
+    .route-stop-actions{display:flex;gap:4px}
+    .route-stop-actions button{padding:6px 9px;font-size:12px}
+    .route-print-head{margin-bottom:15px}
+    .route-print-head h2{margin-bottom:5px}
+    .route-print-meta{font-size:13px;color:#40576b;line-height:1.6}
+    @media print{
+      body *{visibility:hidden!important}
+      #routePanel,#routePanel *{visibility:visible!important}
+      #routePanel{display:block!important;position:absolute;left:0;top:0;width:100%;margin:0;padding:0;border:0;background:#fff}
+      #routePanel .no-print{display:none!important}
+      #routePanel .route-stop{break-inside:avoid;padding:12px 0}
+      #routePanel .route-stop-actions{display:none!important}
+      #routePanel .route-number{font-size:17px}
+    }
     @media(min-width:600px){main{padding-top:26px}.stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
   </style>
 </head>
@@ -165,6 +185,25 @@
           <div><label for="orderStatusFilter">Filtrar por estado</label><select id="orderStatusFilter"><option value="todos">Todos los estados</option><option value="pedido_tomado">Pendientes de preparar</option><option value="pedido_preparado">Preparados</option><option value="pedido_entregado">Entregados</option></select></div>
         </div>
         <p id="ordersFilterCount" class="field-help"></p>
+        <div class="form-actions no-print"><button id="openRouteButton" type="button">Preparar hoja de ruta</button></div>
+        <section id="routePanel" class="route-panel hidden">
+          <div class="row no-print"><h3 style="margin:0">Hoja de ruta</h3><button id="closeRouteButton" type="button" class="secondary edit-button">Cerrar</button></div>
+          <div class="manual-row no-print">
+            <div><label for="routeDate">Fecha del reparto</label><input id="routeDate" type="date"></div>
+            <div><label for="routeNotes">Observaciones del recorrido</label><input id="routeNotes" maxlength="250" placeholder="Ej.: llamar antes de llegar"></div>
+          </div>
+          <div class="no-print">
+            <h3 style="font-size:15px;margin:16px 0 5px">Pedidos pendientes de entrega</h3>
+            <p class="field-help">Seleccioná los pedidos que vas a llevar. Podés incluir pedidos tomados o preparados; los entregados no aparecen.</p>
+            <div id="routeCandidates"></div>
+          </div>
+          <div id="routePrintArea">
+            <div class="route-print-head"><h2>Hoja de ruta · Lácteos La Unión</h2><div id="routePrintMeta" class="route-print-meta"></div></div>
+            <h3 style="font-size:15px;margin:14px 0 4px">Orden de visitas</h3>
+            <div id="routeStops"><p class="muted">Todavía no seleccionaste pedidos.</p></div>
+          </div>
+          <div class="form-actions no-print"><button id="printRouteButton" type="button">Imprimir hoja de ruta</button></div>
+        </section>
         <div id="ordersList" class="list"></div>
         <section id="orderDetailPanel" class="order-detail hidden" aria-live="polite">
           <div class="row"><h3 id="orderDetailTitle">Detalle del pedido</h3><div class="order-actions"><button id="editOrderButton" class="edit-button" type="button">Editar pedido</button><button id="closeOrderDetail" class="secondary edit-button" type="button">Cerrar</button></div></div>
@@ -253,6 +292,7 @@
     let manualCart = [];
     let editingOrderId = null;
     let editingOrderItemIds = [];
+    let routeOrderIds = [];
     const DELIVERY_FEE_PARTICULAR = 1500;
 
     function updatePriceFields() {
@@ -316,6 +356,54 @@
       });
       $("ordersFilterCount").textContent=filtered.length+" de "+ordersCache.length+" pedidos";
       renderOrders($("ordersList"),filtered,true);
+    }
+    function openRoutePanel() {
+      routeOrderIds=[];
+      const now=new Date();
+      $("routeDate").value=[now.getFullYear(),String(now.getMonth()+1).padStart(2,"0"),String(now.getDate()).padStart(2,"0")].join("-");
+      $("routeNotes").value="";
+      $("routePanel").classList.remove("hidden");
+      renderRouteBuilder();
+      $("routePanel").scrollIntoView({behavior:"smooth",block:"start"});
+    }
+    function renderRouteBuilder() {
+      const candidates=$("routeCandidates");candidates.innerHTML="";
+      const available=ordersCache.filter(o=>o.delivery_type==="envio"&&o.status!=="pedido_entregado");
+      if(!available.length)candidates.innerHTML='<p class="muted">No hay pedidos pendientes de entrega a domicilio.</p>';
+      else available.forEach(order=>{
+        const label=document.createElement("label");label.className="route-candidate";
+        const checkbox=document.createElement("input");checkbox.type="checkbox";checkbox.checked=routeOrderIds.includes(order.id);
+        checkbox.addEventListener("change",()=>{
+          if(checkbox.checked&&!routeOrderIds.includes(order.id))routeOrderIds.push(order.id);
+          if(!checkbox.checked)routeOrderIds=routeOrderIds.filter(id=>id!==order.id);
+          renderRouteBuilder();
+        });
+        const detail=document.createElement("span"),strong=document.createElement("strong"),small=document.createElement("small");
+        strong.textContent="#"+order.order_number+" · "+(order.customer_name||"Cliente");
+        small.textContent=(order.delivery_address||"Sin dirección cargada")+" · "+(order.customer_phone||"Sin teléfono")+" · "+statusLabel(order.status);
+        detail.append(strong,small);label.append(checkbox,detail);candidates.append(label);
+      });
+      const selected=routeOrderIds.map(id=>ordersCache.find(o=>o.id===id)).filter(Boolean);
+      $("routePrintMeta").textContent="Fecha: "+($("routeDate").value||"Sin fecha")+" · Paradas: "+selected.length+($("routeNotes").value.trim()?" · Observaciones: "+$("routeNotes").value.trim():"");
+      const stops=$("routeStops");stops.innerHTML="";
+      if(!selected.length){stops.innerHTML='<p class="muted">Todavía no seleccionaste pedidos.</p>';return;}
+      selected.forEach((order,index)=>{
+        const row=document.createElement("div");row.className="route-stop";
+        const number=document.createElement("div");number.className="route-number";number.textContent=(index+1)+".";
+        const info=document.createElement("div"),name=document.createElement("strong"),small=document.createElement("small");
+        name.textContent="#"+order.order_number+" · "+(order.customer_name||"Cliente");
+        small.textContent="Dirección: "+(order.delivery_address||"Sin dirección")+"\nTeléfono: "+(order.customer_phone||"Sin teléfono")+"\nEstado: "+statusLabel(order.status);
+        small.style.whiteSpace="pre-line";info.append(name,small);
+        const actions=document.createElement("div");actions.className="route-stop-actions no-print";
+        [["↑",-1],["↓",1]].forEach(([symbol,delta])=>{
+          const button=document.createElement("button");button.type="button";button.className="secondary";button.textContent=symbol;button.disabled=index+delta<0||index+delta>=selected.length;
+          button.setAttribute("aria-label",delta<0?"Subir parada":"Bajar parada");
+          button.addEventListener("click",()=>{
+            const next=index+delta;[routeOrderIds[index],routeOrderIds[next]]=[routeOrderIds[next],routeOrderIds[index]];renderRouteBuilder();
+          });actions.append(button);
+        });
+        row.append(number,info,actions);stops.append(row);
+      });
     }
     function renderProducts() {
       const target = $("productsList");
@@ -832,6 +920,14 @@
       btn.disabled=false;btn.textContent="Ingresar";
       if(error){showMessage($("loginMessage"),"No se pudo iniciar sesión: "+error.message,"error");return;}
       await openSession(data.session);
+    });
+    $("openRouteButton").addEventListener("click",openRoutePanel);
+    $("closeRouteButton").addEventListener("click",()=>$("routePanel").classList.add("hidden"));
+    $("routeDate").addEventListener("change",renderRouteBuilder);
+    $("routeNotes").addEventListener("input",renderRouteBuilder);
+    $("printRouteButton").addEventListener("click",()=>{
+      if(!routeOrderIds.length){showMessage($("statusMessage"),"Seleccioná al menos un pedido para imprimir la hoja de ruta.","error");return;}
+      window.print();
     });
     $("orderSearch").addEventListener("input",renderFilteredOrders);
     $("orderStatusFilter").addEventListener("change",renderFilteredOrders);
