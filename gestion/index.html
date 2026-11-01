@@ -192,6 +192,7 @@
             <div><label for="routeDate">Fecha del reparto</label><input id="routeDate" type="date"></div>
             <div><label for="routeNotes">Observaciones del recorrido</label><input id="routeNotes" maxlength="250" placeholder="Ej.: llamar antes de llegar"></div>
           </div>
+          <div class="no-print"><label for="routeOrigin">Punto de partida para optimizar el recorrido</label><input id="routeOrigin" maxlength="300" placeholder="Ej.: dirección del depósito, San Lorenzo, Santa Fe"><p class="field-help">Ingresá el domicilio desde donde salís. Se utilizará para calcular el orden más conveniente de las entregas.</p><div class="form-actions" style="margin-top:8px"><button id="optimizeRouteButton" type="button">Optimizar orden de entregas</button></div><div id="routeOptimizeMessage" class="message hidden" role="status"></div></div>
           <div class="no-print">
             <h3 style="font-size:15px;margin:16px 0 5px">Pedidos pendientes de entrega</h3>
             <p class="field-help">Seleccioná los pedidos que vas a llevar. Podés incluir pedidos tomados o preparados; los entregados no aparecen.</p>
@@ -367,6 +368,43 @@
       renderRouteBuilder();
       $("routePanel").scrollIntoView({behavior:"smooth",block:"start"});
     }
+    async function optimizeRouteOrder() {
+      const selected=routeOrderIds.map(id=>ordersCache.find(o=>o.id===id)).filter(Boolean);
+      const origin=$("routeOrigin").value.trim();
+      if(!origin){showMessage($("routeOptimizeMessage"),"Ingresá el punto de partida para calcular el recorrido.","error");return;}
+      if(selected.length<2){showMessage($("routeOptimizeMessage"),"Seleccioná al menos dos pedidos con dirección para optimizar el orden.","error");return;}
+      const missing=selected.filter(o=>!(o.delivery_address||"").trim());
+      if(missing.length){showMessage($("routeOptimizeMessage"),"Hay "+missing.length+" pedido(s) sin dirección. Completá esas direcciones o quitá esos pedidos antes de optimizar.","error");return;}
+      const button=$("optimizeRouteButton");button.disabled=true;button.textContent="Calculando…";
+      showMessage($("routeOptimizeMessage"),"Ubicando las direcciones y calculando el recorrido. Puede tardar unos segundos…");
+      try {
+        const locations=[{kind:"origin",id:null,address:origin},...selected.map(o=>({kind:"stop",id:o.id,address:o.delivery_address}))];
+        const coordinates=[];
+        for(let i=0;i<locations.length;i++){
+          const query=locations[i].address+(locations[i].address.toLocaleLowerCase("es-AR").includes("argentina")?"":", San Lorenzo, Santa Fe, Argentina");
+          const url="https://nominatim.openstreetmap.org/search?"+new URLSearchParams({q:query,format:"jsonv2",limit:"1",countrycodes:"ar"});
+          const response=await fetch(url,{headers:{"Accept":"application/json"}});
+          if(!response.ok)throw new Error("No se pudo consultar el servicio de mapas (HTTP "+response.status+").");
+          const results=await response.json();
+          if(!results.length)throw new Error("No se pudo ubicar esta dirección: "+locations[i].address+". Revisá que esté completa.");
+          coordinates.push(results[0].lon+","+results[0].lat);
+          if(i<locations.length-1)await new Promise(resolve=>setTimeout(resolve,1100));
+        }
+        const tripUrl="https://router.project-osrm.org/trip/v1/driving/"+coordinates.join(";")+"?source=first&destination=any&roundtrip=false&overview=false";
+        const tripResponse=await fetch(tripUrl,{headers:{"Accept":"application/json"}});
+        if(!tripResponse.ok)throw new Error("No se pudo calcular el recorrido (HTTP "+tripResponse.status+").");
+        const trip=await tripResponse.json();
+        if(trip.code!=="Ok"||!trip.waypoints||trip.waypoints.length!==locations.length)throw new Error("El servicio de mapas no pudo encontrar un recorrido válido para todas las direcciones.");
+        const ordered=trip.waypoints.filter(w=>w.waypoint_index>0).sort((a,b)=>a.waypoint_index-b.waypoint_index);
+        const optimizedIds=ordered.map(w=>locations[w.input_index]?.id).filter(Boolean);
+        if(optimizedIds.length!==selected.length)throw new Error("No se pudo relacionar el orden calculado con todos los pedidos.");
+        routeOrderIds=optimizedIds;
+        renderRouteBuilder();
+        showMessage($("routeOptimizeMessage"),"¡Recorrido optimizado! Se ordenaron "+optimizedIds.length+" entregas desde el punto de partida indicado.","ok");
+      } catch(error) {
+        showMessage($("routeOptimizeMessage"),error.message||"No se pudo optimizar el recorrido.","error");
+      } finally {button.disabled=false;button.textContent="Optimizar orden de entregas";}
+    }
     function renderRouteBuilder() {
       const candidates=$("routeCandidates");candidates.innerHTML="";
       const available=ordersCache.filter(o=>o.delivery_type==="envio"&&o.status!=="pedido_entregado");
@@ -391,10 +429,11 @@
       if(validStops.length){
         const last=validStops[validStops.length-1];
         const params=new URLSearchParams({api:"1",destination:last.delivery_address,travelmode:"driving"});
+        if($("routeOrigin").value.trim())params.set("origin",$("routeOrigin").value.trim());
         if(validStops.length>1)params.set("waypoints",validStops.slice(0,-1).map(o=>o.delivery_address).join("|"));
         const routeLink=document.createElement("a");routeLink.href="https://www.google.com/maps/dir/?"+params.toString();routeLink.target="_blank";routeLink.rel="noopener noreferrer";routeLink.textContent="Abrir recorrido completo en Google Maps";routeLink.style.cssText="display:inline-block;padding:11px 14px;background:#164d7b;color:white;border-radius:10px;text-decoration:none;font-weight:650";
         mapActions.append(routeLink);
-        const hint=document.createElement("p");hint.className="field-help";hint.textContent="Google Maps tomará tu ubicación actual como punto de partida y respetará el orden de las paradas seleccionadas.";mapActions.append(hint);
+        const hint=document.createElement("p");hint.className="field-help";hint.textContent=$("routeOrigin").value.trim()?"Google Maps utilizará el punto de partida indicado y respetará el orden optimizado de las paradas.":"Google Maps tomará tu ubicación actual como punto de partida y respetará el orden de las paradas seleccionadas.";mapActions.append(hint);
       }
       const missing=selected.length-validStops.length;
       if(missing){const warning=document.createElement("p");warning.className="field-help";warning.textContent=missing+" pedido(s) sin dirección: no se incluirán en el recorrido del mapa.";mapActions.append(warning);}
@@ -939,6 +978,7 @@
     });
     $("openRouteButton").addEventListener("click",openRoutePanel);
     $("closeRouteButton").addEventListener("click",()=>$("routePanel").classList.add("hidden"));
+    $("optimizeRouteButton").addEventListener("click",optimizeRouteOrder);
     $("routeDate").addEventListener("change",renderRouteBuilder);
     $("routeNotes").addEventListener("input",renderRouteBuilder);
     $("printRouteButton").addEventListener("click",()=>{
