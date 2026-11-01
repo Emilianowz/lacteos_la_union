@@ -536,14 +536,49 @@
       if(lineTotal!==null && (!Number.isFinite(lineTotal)||lineTotal<0))throw new Error("No se pudo calcular el importe del producto.");
       return {product_id:p.id,product_name_snapshot:p.name,sale_mode_snapshot:p.sale_mode,unit_label_snapshot:unitLabel,quantity,unit_price_snapshot:unitPrice,line_total:lineTotal,selection_details:details,display_name:p.name,display_detail:details.selection_label||details.estimated_grams? (details.selection_label||("Estimado "+details.estimated_grams+" g")) : quantity+" "+unitLabel};
     }
+    function updateWeightedItemWeight(index,value) {
+      const item=manualCart[index];
+      if(!item)return;
+      const weight=Number(value);
+      const product=productsCache.find(p=>p.id===item.product_id);
+      const pricePerKg=Number(product?.price_per_kg);
+      if(value==="" || !Number.isFinite(weight) || weight<=0) {
+        item.selection_details={...(item.selection_details||{}),pending_weighing:true};
+        delete item.selection_details.actual_weight_kg;
+        item.unit_price_snapshot=null;item.line_total=null;
+      } else {
+        if(!Number.isFinite(pricePerKg)||pricePerKg<=0) {
+          item.selection_details={...(item.selection_details||{}),pending_weighing:true};
+          item.line_total=null;
+        } else {
+          item.selection_details={...(item.selection_details||{}),actual_weight_kg:weight,pending_weighing:false};
+          item.unit_price_snapshot=pricePerKg;
+          item.line_total=Number((weight*pricePerKg).toFixed(2));
+        }
+      }
+      renderManualCart();
+    }
     function renderManualCart() {
       const target=$("manualCart");target.innerHTML="";
       if(!manualCart.length)target.innerHTML='<p class="muted">Todavía no agregaste productos.</p>';
       manualCart.forEach((item,i)=>{
         const line=document.createElement("div");line.className="manual-cart-item";
         const left=document.createElement("div"),strong=document.createElement("strong"),small=document.createElement("small");
-        strong.textContent=item.display_name;small.textContent=item.display_detail+(item.line_total===null?" · Importe pendiente de pesaje":"");
+        strong.textContent=item.display_name;
+        const details=item.selection_details||{};
+        const detailParts=[item.display_detail];
+        if(details.actual_weight_kg)detailParts.push("Peso real: "+Number(details.actual_weight_kg).toLocaleString("es-AR")+" kg");
+        small.textContent=detailParts.filter(Boolean).join(" · ")+(item.line_total===null?" · Importe pendiente de pesaje":"");
         left.append(strong,small);
+        if(item.sale_mode_snapshot==="weight" && details.pending_weighing!==undefined && (details.selection_label || item.unit_label_snapshot!=="kg")) {
+          const weightBox=document.createElement("div");weightBox.style.marginTop="7px";
+          const weightLabel=document.createElement("label");weightLabel.textContent="Peso real (kg)";
+          const weightInput=document.createElement("input");weightInput.type="number";weightInput.min="0.001";weightInput.step="0.001";weightInput.placeholder="Ej.: 8.250";weightInput.value=details.actual_weight_kg??"";
+          weightInput.addEventListener("change",()=>updateWeightedItemWeight(i,weightInput.value));
+          const price=Number(productsCache.find(p=>p.id===item.product_id)?.price_per_kg);
+          const hint=document.createElement("small");hint.className="field-help";hint.textContent=price>0?"Precio por kg: "+manualPrice(price):"Falta configurar el precio por kg en el catálogo.";
+          weightBox.append(weightLabel,weightInput,hint);left.append(weightBox);
+        }
         const right=document.createElement("div");right.style.textAlign="right";
         right.textContent=item.line_total===null?"A confirmar":manualPrice(item.line_total);
         const remove=document.createElement("button");remove.type="button";remove.className="secondary edit-button";remove.textContent="Quitar";remove.addEventListener("click",()=>{manualCart.splice(i,1);renderManualCart();});
@@ -721,12 +756,14 @@
           const line=document.createElement("div"); line.className="order-product";
           const name=document.createElement("strong"); name.textContent=item.product_name_snapshot;
           const detail=document.createElement("div");
-          const quantity=Number(item.quantity);
-          detail.textContent=quantity+" "+(item.unit_label_snapshot||"")+" · "+money(item.line_total);
-          line.append(name,detail);
-          if(item.selection_details && Object.keys(item.selection_details).length) {
-            const extra=document.createElement("small"); extra.textContent=JSON.stringify(item.selection_details); line.append(extra);
+          const quantity=Number(item.quantity),details=item.selection_details||{};
+          const description=details.selection_label || (quantity+" "+(item.unit_label_snapshot||""));
+          if(details.actual_weight_kg) {
+            detail.textContent=description+" · Peso real: "+Number(details.actual_weight_kg).toLocaleString("es-AR")+" kg · "+money(item.line_total);
+          } else {
+            detail.textContent=description+" · "+(item.line_total===null?"Importe pendiente de pesaje":money(item.line_total));
           }
+          line.append(name,detail);
           content.append(line);
         });
       }
