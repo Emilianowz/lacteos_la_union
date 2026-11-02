@@ -663,7 +663,7 @@
       } else if(p.sale_mode==="portion") {
         selectors.forEach((sel,i)=>{
           const box=document.createElement("div"),label=document.createElement("label"),select=document.createElement("select");
-          label.textContent=i===0?"Importe estimado":"Peso estimado";select.id="manualProductSelector"+i;
+          label.textContent=i===0?"Importe estimado":i===1?"Peso estimado":"Por horma";select.id="manualProductSelector"+i;
           const empty=document.createElement("option");empty.value="";empty.textContent="No seleccionar";select.append(empty);
           (sel.options||[]).forEach(o=>{const opt=document.createElement("option");opt.value=o.value;opt.textContent=o.label;select.append(opt);});
           box.append(label,select);wrap.append(box);
@@ -671,7 +671,7 @@
       }
       target.append(wrap);
       const hint=document.createElement("p");hint.className="field-help";
-      hint.textContent=p.sale_mode==="weight"?"El importe final de este producto se confirma al pesarlo.":p.sale_mode==="portion"?"Elegí importe o peso estimado; si elegís peso, el sistema calcula un estimado con el precio por kilo.":"";
+      hint.textContent=p.sale_mode==="weight"?"El importe final de este producto se confirma al pesarlo.":p.sale_mode==="portion"?"Elegí una sola alternativa: importe, peso estimado o fracción de horma. El importe final se confirma al pesar.":"";
       target.append(hint);
     }
     function readManualProductLine() {
@@ -690,10 +690,11 @@
       } else if(p.sale_mode==="portion") {
         const amount=Number($("manualProductSelector0")?.value||0);
         const grams=Number($("manualProductSelector1")?.value||0);
-        if(amount>0 && grams>0)throw new Error("Elegí importe o peso estimado, no ambos.");
-        if(!amount && !grams)throw new Error("Seleccioná un importe o peso estimado.");
+        const fraction=$("manualProductSelector2")?.value||"";
+        if([amount>0,grams>0,!!fraction].filter(Boolean).length!==1)throw new Error("Elegí una sola alternativa: importe, peso o fracción de horma.");
         if(amount>0){quantity=1;unitLabel="porción";unitPrice=amount;lineTotal=amount;details={estimated_amount:amount};}
-        else {quantity=grams/1000;unitLabel="kg";unitPrice=Number(p.price_per_kg);lineTotal=quantity*unitPrice;details={estimated_grams:grams};}
+        else if(grams>0){quantity=grams/1000;unitLabel="kg";unitPrice=Number(p.price_per_kg);lineTotal=quantity*unitPrice;details={estimated_grams:grams};}
+        else{quantity=1;unitLabel="porción";details={horm_fraction:fraction,horm_fraction_label:selectors[2]?.options?.find(o=>o.value===fraction)?.label||fraction,pending_weighing:true};}
       } else if(p.sale_mode==="weight") {
         if(selectors.length) {
           const select=$("manualProductSelector0");
@@ -711,7 +712,7 @@
       }
       if(!Number.isFinite(quantity)||quantity<=0)throw new Error("Ingresá una cantidad válida.");
       if(lineTotal!==null && (!Number.isFinite(lineTotal)||lineTotal<0))throw new Error("No se pudo calcular el importe del producto.");
-      return {product_id:p.id,product_name_snapshot:p.name,sale_mode_snapshot:p.sale_mode,unit_label_snapshot:unitLabel,quantity,unit_price_snapshot:unitPrice,line_total:lineTotal,selection_details:details,display_name:p.name,display_detail:details.selection_label||details.estimated_grams? (details.selection_label||("Estimado "+details.estimated_grams+" g")) : quantity+" "+unitLabel};
+      return {product_id:p.id,product_name_snapshot:p.name,sale_mode_snapshot:p.sale_mode,unit_label_snapshot:unitLabel,quantity,unit_price_snapshot:unitPrice,line_total:lineTotal,selection_details:details,display_name:p.name,display_detail:details.horm_fraction_label||details.selection_label||(details.estimated_grams?("Estimado "+details.estimated_grams+" g"):quantity+" "+unitLabel)};
     }
     function updateWeightedItemWeight(index,value) {
       const item=manualCart[index];
