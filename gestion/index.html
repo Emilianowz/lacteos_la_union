@@ -245,6 +245,11 @@
             <div class="form-actions"><button id="saveProductButton" type="submit">Guardar producto</button><button id="cancelProductButton" class="secondary" type="button">Cancelar</button></div>
           </form>
         </div>
+        <div class="field" style="margin-top:16px">
+          <label for="productSearch">Buscar en el catálogo</label>
+          <input id="productSearch" type="search" placeholder="🔎 Buscar por nombre, categoría o presentación…" autocomplete="off">
+        </div>
+        <p id="productSearchEmpty" class="muted hidden">No se encontraron productos con esa búsqueda.</p>
         <div id="productsList" class="list"></div>
       </section>
     </section>
@@ -463,8 +468,15 @@
     function renderProducts() {
       const target = $("productsList");
       target.innerHTML = "";
+      const query = ($("productSearch")?.value || "").trim().toLocaleLowerCase("es-AR").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const filteredProducts = productsCache.filter(p => {
+        const category = categoriesCache.find(c=>c.id===p.category_id)?.name || "";
+        const searchable = [p.name,p.description,p.unit_label,category].filter(Boolean).join(" ").toLocaleLowerCase("es-AR").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        return searchable.includes(query);
+      });
+      $("productSearchEmpty").classList.toggle("hidden", filteredProducts.length > 0 || !query);
       if (!productsCache.length) { target.innerHTML='<p class="muted">Todavía no se cargaron productos.</p>'; return; }
-      productsCache.forEach(p => {
+      filteredProducts.forEach(p => {
         const el=document.createElement("div");el.className="item";
         const left=document.createElement("div");left.className="item-main";
         const strong=document.createElement("strong");strong.textContent=p.name;
@@ -519,6 +531,7 @@
       }
     }
 
+    $("productSearch").addEventListener("input", renderProducts);
     async function loadData() {
       showMessage($("statusMessage"),"Conectado. Consultando pedidos y catálogo…");
       const [ordersRes,productsRes,categoriesRes,customersRes] = await Promise.all([
