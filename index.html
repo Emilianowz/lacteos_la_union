@@ -200,11 +200,6 @@
             </section>
         </div>
     </div>
-    <div class="buscador-catalogo">
-        <input type="search" id="buscadorProductos" placeholder="🔎 Buscar productos..." aria-label="Buscar productos en el catálogo" autocomplete="off">
-        <p id="sinResultadosBusqueda" hidden>No se encontraron productos con esa búsqueda.</p>
-    </div>
-
     <div class="categorias">
         <button class="cat-btn activo" onclick="irACategoria('quesos-blandos', this)">Quesos Blandos</button>
         <button class="cat-btn" onclick="irACategoria('quesos-semiduros', this)">Quesos Semiduros</button>
@@ -1072,27 +1067,6 @@ function calcularTotal() {
 }
 
 // ============== NAVEGACIÓN ==============
-function normalizarBusqueda(texto) {
-    return String(texto || '').toLocaleLowerCase('es-AR')
-        .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim();
-}
-
-function buscarProductos() {
-    const consulta = normalizarBusqueda(document.getElementById('buscadorProductos').value);
-    let coincidencias = 0;
-    document.querySelectorAll('.seccion').forEach(seccion => {
-        let coincidenciasSeccion = 0;
-        seccion.querySelectorAll('.producto').forEach(producto => {
-            const coincide = !consulta || normalizarBusqueda(producto.textContent).includes(consulta);
-            producto.hidden = !coincide;
-            if (coincide) coincidenciasSeccion++;
-        });
-        seccion.hidden = coincidenciasSeccion === 0;
-        coincidencias += coincidenciasSeccion;
-    });
-    document.getElementById('sinResultadosBusqueda').hidden = coincidencias > 0;
-}
-
 // ============== NAVEGACIÓN ==============
 function irACategoria(idSeccion, boton) {
     document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('activo'));
@@ -1111,8 +1085,6 @@ function irAPantalla2() {
     actualizarResumen();
     window.scrollTo(0, 0);
 }
-
-document.getElementById('buscadorProductos').addEventListener('input', buscarProductos);
 
 // ============== CONTADORES DE UNIDADES ==============
 function cambiarCant(clave, delta) {
