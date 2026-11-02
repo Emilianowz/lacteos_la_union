@@ -334,6 +334,11 @@
       $("productId").value = "";
       $("productFormMessage").className = "message hidden";
     }
+    function productUnitLabel(product) {
+      const config=product?.selection_config||{};
+      if(config.quantity_action==="weighted_piece") return "unidad";
+      return product?.unit_label || (product?.sale_mode==="sliced" ? "100 g" : product?.sale_mode==="weight" ? "kg" : "unidad");
+    }
     function openProductForm(product) {
       $("productForm").reset();
       $("productFormMessage").className = "message hidden";
@@ -342,7 +347,7 @@
       $("productName").value = product?.name || "";
       $("productDescription").value = product?.description || "";
       $("productMode").value = product?.sale_mode || "unit";
-      $("productUnit").value = product?.unit_label || (product?.sale_mode === "sliced" ? "100 g" : product?.sale_mode === "weight" ? "kg" : "unidad");
+      $("productUnit").value = productUnitLabel(product);
       $("productPrice").value = product?.price ?? (product?.sale_mode === "unit" ? 0 : "");
       $("productKgPrice").value = product?.price_per_kg ?? "";
       $("productHundredPrice").value = product?.price_per_100g ?? "";
@@ -471,7 +476,7 @@
       const query = ($("productSearch")?.value || "").trim().toLocaleLowerCase("es-AR").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       const filteredProducts = productsCache.filter(p => {
         const category = categoriesCache.find(c=>c.id===p.category_id)?.name || "";
-        const searchable = [p.name,p.description,p.unit_label,category].filter(Boolean).join(" ").toLocaleLowerCase("es-AR").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const searchable = [p.name,p.description,productUnitLabel(p),category].filter(Boolean).join(" ").toLocaleLowerCase("es-AR").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         return searchable.includes(query);
       });
       $("productSearchEmpty").classList.toggle("hidden", filteredProducts.length > 0 || !query);
@@ -482,7 +487,7 @@
         const strong=document.createElement("strong");strong.textContent=p.name;
         const category=categoriesCache.find(c=>c.id===p.category_id)?.name || "Sin categoría";
         const detail=p.sale_mode==="weight" || p.sale_mode==="portion" ? money(p.price_per_kg)+" / kg" : p.sale_mode==="sliced" ? money(p.price_per_100g)+" / 100 g" : money(p.price);
-        const small=document.createElement("small");small.textContent=category+" · "+(p.unit_label||p.sale_mode)+" · "+detail;
+        const small=document.createElement("small");small.textContent=category+" · "+productUnitLabel(p)+" · "+detail;
         left.append(strong,small);
         const actions=document.createElement("div");actions.style.display="flex";actions.style.alignItems="center";actions.style.gap="7px";
         const pill=document.createElement("span");pill.className="pill"+(p.active?"":" off");pill.textContent=p.active?"Activo":"Inactivo";
@@ -673,7 +678,7 @@
       const p=productsCache.find(x=>x.id===$("manualProductSelect").value);
       if(!p)throw new Error("Seleccioná un producto.");
       const cfg=p.selection_config||{},selectors=Array.isArray(cfg.selectors)?cfg.selectors:[];
-      let quantity=1,unitPrice=null,lineTotal=null,unitLabel=p.unit_label||"unidad",details={};
+      let quantity=1,unitPrice=null,lineTotal=null,unitLabel=productUnitLabel(p),details={};
       if(p.sale_mode==="unit") {
         quantity=Number($("manualProductQty")?.value||0);
         unitPrice=Number(p.price);lineTotal=quantity*unitPrice;
@@ -694,10 +699,10 @@
           const select=$("manualProductSelector0");
           if(!select?.value)throw new Error("Seleccioná la presentación.");
           const option=selectors[0].options.find(o=>o.value===select.value);
-          quantity=parseFloat(select.value)||1;unitLabel=p.unit_label||"unidad";
+          quantity=parseFloat(select.value)||1;unitLabel=productUnitLabel(p);
           details={selection_value:select.value,selection_label:option?.label||select.value,pending_weighing:true};
         } else if(cfg.quantity_action==="weighted_piece") {
-          quantity=Number($("manualProductQty")?.value||0);unitLabel=p.unit_label||"pieza";
+          quantity=Number($("manualProductQty")?.value||0);unitLabel=productUnitLabel(p);
           details={pending_weighing:true};
         } else {
           quantity=Number($("manualProductQty")?.value||0);unitLabel="kg";
