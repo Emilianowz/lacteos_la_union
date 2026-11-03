@@ -97,6 +97,8 @@ create table if not exists public.orders (
   source public.order_source not null,
   status public.order_status not null default 'pedido_tomado',
   subtotal numeric(14,2) not null default 0,
+  discount_percent numeric(5,2) not null default 0,
+  discount_amount numeric(14,2) not null default 0,
   delivery_fee numeric(14,2) not null default 0,
   total numeric(14,2) not null default 0,
   notes text not null default '',
