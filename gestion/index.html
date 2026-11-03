@@ -771,10 +771,12 @@
       const isNew=!$("manualNewCustomerPanel").classList.contains("hidden");
       const type=isNew?$("manualCustomerType").value:customer?.customer_type||"particular";
       const delivery=$("manualDeliveryType").value;
-      const fee=delivery==="envio" && type!=="comercio"?DELIVERY_FEE_PARTICULAR:0;
+      const isBusiness=type==="comercio";
+      const discount=isBusiness?Number((subtotal*0.05).toFixed(2)):0;
+      const fee=delivery==="envio" && !isBusiness?DELIVERY_FEE_PARTICULAR:0;
       $("manualSubtotal").textContent="Subtotal: "+manualPrice(subtotal)+(manualCart.some(i=>i.line_total===null)?" + productos pendientes de pesaje":"");
       $("manualDeliveryFee").textContent=delivery==="envio"?(fee===0?"Envío a domicilio sin cargo.":"Costo de envío: "+manualPrice(fee)):"Retiro en el local: sin cargo.";
-      $("manualGrandTotal").textContent="Total estimado: "+manualPrice(subtotal+fee);
+      $("manualGrandTotal").textContent=(isBusiness?"Descuento comercio (5%): -"+manualPrice(discount)+" · ":"")+"Total estimado: "+manualPrice(subtotal-discount+fee);
     }
     async function saveManualOrder(event) {
       event.preventDefault();
@@ -800,11 +802,14 @@
         const address=$("manualDeliveryAddress").value.trim()||customer.address||"";
         if(delivery==="envio"&&!address)throw new Error("Completá la dirección de entrega.");
         const subtotal=manualCart.reduce((sum,item)=>sum+(item.line_total===null?0:Number(item.line_total)),0);
+        const discountPercent=isBusiness?5:0;
+        const discountAmount=Number((subtotal*discountPercent/100).toFixed(2));
         const deliveryFee=delivery==="envio"&&!isBusiness?DELIVERY_FEE_PARTICULAR:0;
         const orderPayload={
           customer_id:customer.id,customer_name:customer.name,customer_phone:customer.phone,customer_email:customer.email||null,
           delivery_type:delivery,delivery_address:delivery==="envio"?address:null,payment_method:$("manualPayment").value,
-          subtotal,delivery_fee:deliveryFee,total:subtotal+deliveryFee,notes:$("manualOrderNotes").value.trim()
+          subtotal,discount_percent:discountPercent,discount_amount:discountAmount,delivery_fee:deliveryFee,
+          total:subtotal-discountAmount+deliveryFee,notes:$("manualOrderNotes").value.trim()
         };
         if(editingOrderId) {
           const {error:updateError}=await db.from("orders").update(orderPayload).eq("id",editingOrderId);
