@@ -635,7 +635,7 @@
       const selectors=Array.isArray(cfg.selectors)?cfg.selectors:[];
       const wrap=document.createElement("div");wrap.className="manual-row";
       if(p.sale_mode==="unit" || (p.sale_mode==="weight" && cfg.quantity_stepper)) {
-        const box=document.createElement("div");box.innerHTML='<label for="manualProductQty">Cantidad</label><input id="manualProductQty" type="number" min="0.001" step="1" value="1">';
+        const box=document.createElement("div");box.innerHTML='<label for="manualProductQty">Cantidad</label><input id="manualProductQty" type="number" min="1" step="1" value="1">';
         wrap.append(box);
       } else if(p.sale_mode==="weight" && selectors.length) {
         selectors.forEach((sel,i)=>{
@@ -681,6 +681,7 @@
       let quantity=1,unitPrice=null,lineTotal=null,unitLabel=productUnitLabel(p),details={};
       if(p.sale_mode==="unit") {
         quantity=Number($("manualProductQty")?.value||0);
+        if(!Number.isInteger(quantity)||quantity<1)throw new Error("La cantidad debe ser un número entero de al menos 1 unidad.");
         unitPrice=Number(p.price);lineTotal=quantity*unitPrice;
       } else if(p.sale_mode==="sliced") {
         const grams=Number($("manualProductSelector0")?.value||$("manualProductQty")?.value||0);
