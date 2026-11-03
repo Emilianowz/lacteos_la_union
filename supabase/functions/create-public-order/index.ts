@@ -70,8 +70,8 @@ Deno.serve(async (req: Request) => {
     if (!supabaseUrl || !serviceKey) throw new Error("La función no está configurada en Supabase.");
 
     const db = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
-    const normalize = (value: string) => value.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase().replace(/\\s+/g, " ").trim();
-    const digits = (value: string) => value.replace(/\\D/g, "");
+    const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+    const digits = (value: string) => value.replace(/\D/g, "");
     let customerId: string | null = null;
     let isBusiness = false;
     if (body.customer_type === "comercio") {
