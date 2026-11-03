@@ -540,7 +540,7 @@
     async function loadData() {
       showMessage($("statusMessage"),"Conectado. Consultando pedidos y catálogo…");
       const [ordersRes,productsRes,categoriesRes,customersRes] = await Promise.all([
-        db.from("orders").select("id,order_number,customer_name,customer_phone,customer_email,customer_id,delivery_type,delivery_address,payment_method,source,status,subtotal,delivery_fee,total,notes,created_at").order("created_at",{ascending:false}).limit(50),
+        db.from("orders").select("id,order_number,customer_name,customer_phone,customer_email,customer_id,delivery_type,delivery_address,payment_method,source,status,subtotal,discount_percent,discount_amount,delivery_fee,total,notes,created_at").order("created_at",{ascending:false}).limit(50),
         db.from("products").select("id,name,category_id,description,sale_mode,unit_label,price,price_per_kg,price_per_100g,selection_config,active").order("name"),
         db.from("categories").select("id,name,active").order("sort_order"),
         db.from("customers").select("id,name,phone,email,address,customer_type,notes").order("name")
@@ -921,6 +921,7 @@
         ["Forma de pago",order.payment_method || "No especificada"],
         ["Origen",order.source==="web"?"Página web":"App de gestión"],
         ["Fecha",date(order.created_at)],["Subtotal",money(order.subtotal)],
+        ...(Number(order.discount_amount)>0?[[`Descuento comercio (${Number(order.discount_percent)||5}%)`,"-"+money(order.discount_amount)]]:[]),
         ["Costo de envío",money(order.delivery_fee)],["Total",money(order.total)]
       ];
       fields.forEach(([label,value]) => {
