@@ -799,6 +799,19 @@
             <input type="tel" id="telefono">
         </div>
         <div class="form-group">
+            <label>Tipo de cliente *</label>
+            <select id="tipoCliente" onchange="actualizarTipoCliente()">
+                <option value="particular">Particular</option>
+                <option value="comercio">Comercio</option>
+            </select>
+        </div>
+        <div class="form-group" id="campoDomicilioComercio" hidden>
+            <label for="domicilioComercio">Domicilio registrado del comercio *</label>
+            <input type="text" id="domicilioComercio" placeholder="Ingresá el domicilio registrado" autocomplete="street-address" oninput="invalidarValidacionComercio()">
+            <button type="button" class="btn-wsp" id="btnValidarComercio" onclick="validarComercio()" style="margin-top:8px;">Validar comercio</button>
+            <div id="estadoValidacionComercio" style="margin-top:8px;font-size:14px;"></div>
+        </div>
+        <div class="form-group">
             <label>Correo electrónico</label>
             <input type="email" id="correo">
         </div>
@@ -829,9 +842,13 @@
                 <span>Subtotal (productos fijos):</span>
                 <span id="res-subtotal">$ 0,00</span>
             </div>
+            <div class="res-total" id="fila-descuento" hidden>
+                <span>Descuento comercio (5%):</span>
+                <span id="res-descuento">-$ 0,00</span>
+            </div>
             <div class="res-total" id="fila-envio" hidden>
                 <span>Envío:</span>
-                <span>$ 1.500,00</span>
+                <span id="res-envio">$ 1.500,00</span>
             </div>
             <div class="res-total" style="font-size:13px; color:#F5A623; border-top:1px dashed #F5A623; padding-top:8px; margin-top:8px;">
                 <span>⚠️ Los quesos blandos se cobran al pesar</span>
@@ -1099,6 +1116,53 @@ function seleccionarAzulMonto(valor) { seleccionarPorcion('azul', 'monto', valor
 function seleccionarAzulPeso(valorGramos) { seleccionarPorcion('azul', 'peso', valorGramos); }
 
 // ============== RESUMEN Y ENVÍO ==============
+let comercioValidado = false;
+function invalidarValidacionComercio() {
+    comercioValidado = false;
+    const estado = document.getElementById('estadoValidacionComercio');
+    if (estado) estado.textContent = '';
+    actualizarResumen();
+}
+function actualizarTipoCliente() {
+    const esComercio = document.getElementById('tipoCliente').value === 'comercio';
+    document.getElementById('campoDomicilioComercio').hidden = !esComercio;
+    invalidarValidacionComercio();
+}
+async function validarComercio() {
+    const nombre = document.getElementById('nombre').value.trim();
+    const telefono = document.getElementById('telefono').value.trim();
+    const domicilio = document.getElementById('domicilioComercio').value.trim();
+    const estado = document.getElementById('estadoValidacionComercio');
+    const boton = document.getElementById('btnValidarComercio');
+    if (!nombre || !telefono || !domicilio) {
+        mostrarAviso('Para validar el comercio, completá nombre, teléfono y domicilio registrado.');
+        return;
+    }
+    boton.disabled = true;
+    boton.textContent = 'Validando…';
+    estado.textContent = '';
+    try {
+        const respuesta = await fetch('https://mcldznfvurasijsmjrnp.supabase.co/functions/v1/create-public-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'apikey': 'sb_publishable_vTVzeA7myrdRD1mwFNH8Eg_jWATzNRF' },
+            body: JSON.stringify({ action: 'validate_commerce', customer_type: 'comercio', customer_name: nombre, customer_phone: telefono, customer_address: domicilio })
+        });
+        const resultado = await respuesta.json().catch(() => ({}));
+        if (!respuesta.ok || !resultado.authorized) throw new Error(resultado.error || 'Los datos no coinciden con un comercio habilitado.');
+        comercioValidado = true;
+        estado.textContent = '✓ Comercio validado: 5% de descuento y envío gratis.';
+        estado.style.color = '#16803c';
+        actualizarResumen();
+    } catch (error) {
+        comercioValidado = false;
+        estado.textContent = error.message || 'No se pudo validar el comercio.';
+        estado.style.color = '#b42318';
+        actualizarResumen();
+    } finally {
+        boton.disabled = false;
+        boton.textContent = 'Validar comercio';
+    }
+}
 function actualizarEntrega() {
     const esEnvio = document.getElementById('entrega').value === 'envio';
     const campoDomicilio = document.getElementById('campoDomicilio');
@@ -1118,7 +1182,9 @@ function actualizarResumen() {
     lista.innerHTML = '';
     
     let subtotal = calcularTotal();
-    let totalFinal = subtotal;
+    const esComercio = comercioValidado && document.getElementById('tipoCliente').value === 'comercio';
+    const descuento = esComercio ? Number((subtotal * 0.05).toFixed(2)) : 0;
+    let totalFinal = subtotal - descuento;
     
     const hayQuesosBlandos = Object.keys(seleccionesPeso).length > 0 || Object.keys(seleccionesPorcion).length > 0 || Object.values(cantidadesPeso).some(v => v > 0);
     
@@ -1183,11 +1249,14 @@ function actualizarResumen() {
     }
     
     const filaEnvio = document.getElementById('fila-envio');
+    const filaDescuento = document.getElementById('fila-descuento');
     const esEnvio = entrega === 'envio';
-    filaEnvio.hidden = !esEnvio;
-    if (esEnvio) {
-        totalFinal += COSTO_ENVIO;
-    }
+    const costoEnvio = esEnvio && !esComercio ? COSTO_ENVIO : 0;
+    filaEnvio.hidden = costoEnvio === 0;
+    filaDescuento.hidden = !esComercio;
+    document.getElementById('res-descuento').textContent = '-' + formatoMoneda(descuento);
+    document.getElementById('res-envio').textContent = formatoMoneda(costoEnvio);
+    totalFinal += costoEnvio;
     
     document.getElementById('res-subtotal').textContent = formatoMoneda(subtotal);
     document.getElementById('res-total').textContent = formatoMoneda(totalFinal);
@@ -1289,9 +1358,15 @@ async function enviarWhatsApp() {
     const entrega = document.getElementById('entrega').value;
     const domicilio = document.getElementById('domicilio').value.trim();
     const pago = document.getElementById('pago').value;
+    const tipoCliente = document.getElementById('tipoCliente').value;
+    const domicilioComercio = document.getElementById('domicilioComercio').value.trim();
 
     if (!nombre || !telefono) {
         mostrarAviso('Por favor, completá tu nombre y teléfono.');
+        return;
+    }
+    if (tipoCliente === 'comercio' && (!comercioValidado || !domicilioComercio)) {
+        mostrarAviso('Validá el comercio con el nombre, teléfono y domicilio registrados, o elegí Particular.');
         return;
     }
     if (entrega === 'envio' && !domicilio) {
@@ -1319,6 +1394,8 @@ async function enviarWhatsApp() {
             body: JSON.stringify({
                 customer_name: nombre,
                 customer_phone: telefono,
+                customer_type: tipoCliente,
+                customer_address: tipoCliente === 'comercio' ? domicilioComercio : null,
                 delivery_type: entrega,
                 delivery_address: entrega === 'envio' ? domicilio : null,
                 payment_method: pago,
