@@ -1309,7 +1309,7 @@ async function enviarWhatsApp() {
     }
 
     const ventanaWhatsApp = window.open('about:blank', '_blank');
-    const boton = document.getElementById('btnPedir');
+    const boton = document.querySelector('.btn-wsp');
     if (boton) { boton.disabled = true; boton.textContent = 'Guardando pedido…'; }
 
     try {
@@ -1340,7 +1340,7 @@ async function enviarWhatsApp() {
         console.error('Error al registrar el pedido:', error);
         mostrarAviso('No pudimos registrar tu pedido. Por favor, intentá nuevamente o comunicate por WhatsApp.');
     } finally {
-        if (boton) { boton.disabled = false; boton.textContent = 'Confirmar pedido'; }
+        if (boton) { boton.disabled = false; boton.textContent = '📤 Enviar por WhatsApp'; }
     }
 }
 </script>
