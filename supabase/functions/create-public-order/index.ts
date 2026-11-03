@@ -60,13 +60,35 @@ Deno.serve(async (req: Request) => {
     });
 
     const subtotal = cleanItems.reduce((sum, item) => sum + (item.line_total ?? 0), 0);
-    const deliveryFee = deliveryType === "envio" ? 1500 : 0;
+    const customerAddress = String(body.customer_address ?? "").trim().slice(0, 300);
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !serviceKey) throw new Error("La función no está configurada en Supabase.");
 
     const db = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+    const normalize = (value: string) => value.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase().replace(/\\s+/g, " ").trim();
+    const digits = (value: string) => value.replace(/\\D/g, "");
+    let customerId: string | null = null;
+    let isBusiness = false;
+    if (body.customer_type === "comercio") {
+      if (!customerAddress) return json(400, { error: "Ingresá el domicilio registrado del comercio." });
+      const { data: businesses, error: customerError } = await db.from("customers")
+        .select("id,name,phone,address").eq("customer_type", "comercio");
+      if (customerError) throw customerError;
+      const match = (businesses || []).find((c: any) =>
+        normalize(c.name || "") === normalize(name) &&
+        digits(c.phone || "") === digits(phone) &&
+        normalize(c.address || "") === normalize(customerAddress)
+      );
+      if (!match) return json(403, { error: "No pudimos validar los datos del comercio. Revisá nombre, teléfono y domicilio o realizá el pedido como particular." });
+      customerId = match.id;
+      isBusiness = true;
+    }
+    const discountPercent = isBusiness ? 5 : 0;
+    const discountAmount = Number((subtotal * discountPercent / 100).toFixed(2));
+    const deliveryFee = isBusiness ? 0 : deliveryType === "envio" ? 1500 : 0;
     const { data: order, error: orderError } = await db.from("orders").insert({
+      customer_id: customerId,
       customer_name: name,
       customer_phone: phone,
       delivery_type: deliveryType,
@@ -75,8 +97,10 @@ Deno.serve(async (req: Request) => {
       source: "web",
       status: "pedido_tomado",
       subtotal,
+      discount_percent: discountPercent,
+      discount_amount: discountAmount,
       delivery_fee: deliveryFee,
-      total: subtotal + deliveryFee,
+      total: subtotal - discountAmount + deliveryFee,
       notes: "",
     }).select("id,order_number").single();
 
