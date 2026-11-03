@@ -27,8 +27,12 @@ Deno.serve(async (req: Request) => {
     const payment = ["efectivo", "transferencia", "debito"].includes(body.payment_method)
       ? body.payment_method : null;
     const items = Array.isArray(body.items) ? body.items : [];
+    const isValidationRequest = body.action === "validate_commerce";
 
-    if (!name || !phone || !payment || items.length === 0 || items.length > 100) {
+    if (!name || !phone) {
+      return json(400, { error: "Ingresá nombre y teléfono." });
+    }
+    if (!isValidationRequest && (!payment || items.length === 0 || items.length > 100)) {
       return json(400, { error: "Faltan datos obligatorios o el pedido no contiene productos." });
     }
     if (deliveryType === "envio" && !address) {
@@ -83,6 +87,16 @@ Deno.serve(async (req: Request) => {
       if (!match) return json(403, { error: "No pudimos validar los datos del comercio. Revisá nombre, teléfono y domicilio o realizá el pedido como particular." });
       customerId = match.id;
       isBusiness = true;
+    }
+    if (isValidationRequest) {
+      if (body.customer_type !== "comercio") {
+        return json(400, { error: "La validación solicitada corresponde a un comercio." });
+      }
+      return json(200, {
+        ok: true,
+        authorized: isBusiness,
+        benefit: isBusiness ? "5% de descuento y envío gratis" : null
+      });
     }
     const discountPercent = isBusiness ? 5 : 0;
     const discountAmount = Number((subtotal * discountPercent / 100).toFixed(2));
