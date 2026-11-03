@@ -1194,79 +1194,154 @@ function actualizarResumen() {
 }
 
 // ============== ENVIAR POR WHATSAPP ==============
-function enviarWhatsApp() {
-    const nombre = document.getElementById('nombre').value;
-    const telefono = document.getElementById('telefono').value;
+function construirItemsPedido() {
+    const items = [];
+    for (const clave in cantidades) {
+        const cantidad = Number(cantidades[clave]) || 0;
+        if (cantidad > 0) items.push({
+            product_name_snapshot: NOMBRES[clave] || clave,
+            sale_mode_snapshot: 'unit',
+            unit_label_snapshot: 'unidad',
+            quantity: cantidad,
+            unit_price_snapshot: PRECIOS[clave],
+            line_total: cantidad * PRECIOS[clave],
+            selection_details: {}
+        });
+    }
+    for (const clave in seleccionesFetas) {
+        const item = seleccionesFetas[clave];
+        items.push({
+            product_name_snapshot: item.nombre,
+            sale_mode_snapshot: 'sliced',
+            unit_label_snapshot: '100 g',
+            quantity: item.gramos / 100,
+            unit_price_snapshot: item.precio100g,
+            line_total: item.importe,
+            selection_details: { grams: item.gramos }
+        });
+    }
+    for (const clave in seleccionesPeso) {
+        const item = seleccionesPeso[clave];
+        items.push({
+            product_name_snapshot: item.nombre,
+            sale_mode_snapshot: 'weight',
+            unit_label_snapshot: 'pieza',
+            quantity: 1,
+            unit_price_snapshot: null,
+            line_total: null,
+            selection_details: { selection_label: item.texto, pending_weighing: true }
+        });
+    }
+    const nombresPeso = {
+        muzz_cilindro: 'MUZZARELLA CILINDRO (5kg completo)',
+        salamin_pg_moriconi: 'SALAMÍN P/G MORICONI',
+        salamin_pf_moriconi: 'SALAMÍN P/F MORICONI',
+        chorizo_moriconi: 'CHORIZO MORICONI'
+    };
+    for (const clave in cantidadesPeso) {
+        const cantidad = Number(cantidadesPeso[clave]) || 0;
+        if (cantidad > 0) items.push({
+            product_name_snapshot: nombresPeso[clave] || clave,
+            sale_mode_snapshot: 'weight',
+            unit_label_snapshot: 'pieza',
+            quantity: cantidad,
+            unit_price_snapshot: null,
+            line_total: null,
+            selection_details: { selection_label: 'Pieza completa', pending_weighing: true }
+        });
+    }
+    const nombresPorcion = {
+        sardo_trem: 'SARDO TREMBLAY',
+        holanda_verona: 'HOLANDA LA VERONA',
+        romanito_quesera: 'ROMANITO S/P LA QUESERA',
+        azul: 'QUESO AZUL LA QUESERA'
+    };
+    const porciones = { ...seleccionesPorcion };
+    if (quesoAzul) porciones.azul = quesoAzul;
+    for (const clave in porciones) {
+        const item = porciones[clave];
+        const etiqueta = item.tipo === 'monto' ? 'Importe estimado: ' + formatoMoneda(item.valor)
+            : item.tipo === 'peso' ? 'Peso estimado: ' + item.gramos + ' g'
+            : item.etiqueta;
+        items.push({
+            product_name_snapshot: nombresPorcion[clave] || clave,
+            sale_mode_snapshot: 'portion',
+            unit_label_snapshot: 'porción',
+            quantity: 1,
+            unit_price_snapshot: null,
+            line_total: null,
+            selection_details: {
+                selection_type: item.tipo,
+                selection_label: etiqueta,
+                estimated_amount: item.tipo === 'monto' ? item.valor : null,
+                estimated_grams: item.tipo === 'peso' ? item.gramos : null,
+                horm_fraction: item.tipo === 'horma' ? item.fraccion : null,
+                pending_weighing: true
+            }
+        });
+    }
+    return items;
+}
+
+async function enviarWhatsApp() {
+    const nombre = document.getElementById('nombre').value.trim();
+    const telefono = document.getElementById('telefono').value.trim();
     const entrega = document.getElementById('entrega').value;
-    const domicilio = document.getElementById('domicilio').value || '';
+    const domicilio = document.getElementById('domicilio').value.trim();
     const pago = document.getElementById('pago').value;
-    
-    if (!nombre.trim() || !telefono.trim()) {
+
+    if (!nombre || !telefono) {
         mostrarAviso('Por favor, completá tu nombre y teléfono.');
         return;
     }
-    if (entrega === 'envio' && !domicilio.trim()) {
+    if (entrega === 'envio' && !domicilio) {
         document.getElementById('campoDomicilio').hidden = false;
         document.getElementById('domicilio').required = true;
         document.getElementById('domicilio').focus();
         mostrarAviso('Ingresá tu domicilio para el envío.');
         return;
     }
-    
-    let mensaje = `🛒 *NUEVO PEDIDO - LÁCTEOS LA UNIÓN*%0A%0A`;
-    mensaje += `👤 Nombre: ${nombre}%0A`;
-    mensaje += `📱 Teléfono: ${telefono}%0A`;
-    if (entrega === 'envio') {
-        mensaje += `🚚 Envío a: ${domicilio}%0A`;
-        mensaje += `💰 Envío: $1.500%0A`;
-    } else {
-        mensaje += `🚚 Retiro en Santiago del Estero 1047%0A`;
+
+    const items = construirItemsPedido();
+    if (!items.length) {
+        mostrarAviso('Agregá al menos un producto al pedido.');
+        return;
     }
-    mensaje += `💳 Pago: ${pago === 'efectivo' ? 'Efectivo' : pago === 'transferencia' ? 'Transferencia' : 'Débito'}%0A%0A`;
-    
-    const hayQuesosBlandos = Object.keys(seleccionesPeso).length > 0 || Object.keys(seleccionesPorcion).length > 0 || Object.values(cantidadesPeso).some(v => v > 0);
-    
-    if (hayQuesosBlandos) {
-        mensaje += `🧀 *PRODUCTOS POR PESO — Se cobran al pesar*%0A`;
-        for (const clave in seleccionesPeso) {
-            const item = seleccionesPeso[clave];
-            mensaje += `${item.nombre} — ${item.texto}%0A`;
+
+    const ventanaWhatsApp = window.open('about:blank', '_blank');
+    const boton = document.getElementById('btnPedir');
+    if (boton) { boton.disabled = true; boton.textContent = 'Guardando pedido…'; }
+
+    try {
+        const respuesta = await fetch('https://mcldznfvurasijsmjrnp.supabase.co/functions/v1/create-public-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                customer_name: nombre,
+                customer_phone: telefono,
+                delivery_type: entrega,
+                delivery_address: entrega === 'envio' ? domicilio : null,
+                payment_method: pago,
+                items
+            })
+        });
+        const resultado = await respuesta.json().catch(() => ({}));
+        if (!respuesta.ok || !resultado.ok) {
+            throw new Error(resultado.error || 'No se pudo guardar el pedido.');
         }
-        const nombresPeso = { muzz_cilindro: 'MUZZARELLA CILINDRO', salamin_pg_moriconi: 'SALAMÍN P/G MORICONI', salamin_pf_moriconi: 'SALAMÍN P/F MORICONI', chorizo_moriconi: 'CHORIZO MORICONI' };
-        for (const clave in cantidadesPeso) { if (cantidadesPeso[clave] > 0) mensaje += `${nombresPeso[clave] || clave} — ${cantidadesPeso[clave]}x pieza completa%0A`; }
-        const nombresPorcion = { sardo_trem: 'SARDO TREMBLAY', holanda_verona: 'HOLANDA LA VERONA', romanito_quesera: 'ROMANITO S/P LA QUESERA' };
-        for (const clave in seleccionesPorcion) { if (clave !== 'azul') { const item = seleccionesPorcion[clave]; const texto = item.tipo === 'monto' ? `estimado ${item.valor}` : item.tipo === 'peso' ? `estimado ${item.gramos} gr` : item.etiqueta; mensaje += `${nombresPorcion[clave] || clave} — ${texto}%0A`; } }
-        if (quesoAzul) {
-            const texto = quesoAzul.tipo === 'monto' ? `QUESO AZUL — estimado ${quesoAzul.valor}` : quesoAzul.tipo === 'peso' ? `QUESO AZUL — estimado ${quesoAzul.gramos} gr` : `QUESO AZUL — ${quesoAzul.etiqueta}`;
-            mensaje += `${texto}%0A`;
-        }
-        mensaje += `%0A`;
+
+        const mensaje = '🔔 *¡NUEVO PEDIDO - LÁCTEOS LA UNIÓN!*%0A%0AHay un nuevo pedido registrado en la tienda web.%0AIngresá a la app de gestión para consultar los detalles.';
+        const url = 'https://wa.me/543412663345?text=' + mensaje;
+        if (ventanaWhatsApp) ventanaWhatsApp.location.href = url;
+        else window.location.href = url;
+        mostrarAviso('¡Pedido registrado correctamente! Te contactaremos para coordinar la entrega.');
+    } catch (error) {
+        if (ventanaWhatsApp) ventanaWhatsApp.close();
+        console.error('Error al registrar el pedido:', error);
+        mostrarAviso('No pudimos registrar tu pedido. Por favor, intentá nuevamente o comunicate por WhatsApp.');
+    } finally {
+        if (boton) { boton.disabled = false; boton.textContent = 'Confirmar pedido'; }
     }
-    
-    mensaje += `📦 *PRODUCTOS:*%0A`;
-    let subtotal = 0;
-    for (const clave in seleccionesFetas) {
-        const item = seleccionesFetas[clave];
-        subtotal += item.importe;
-        mensaje += `${item.nombre} — ${item.gramos} g — ${formatoMoneda(item.importe)}%0A`;
-    }
-    for (const clave in cantidades) {
-        if (cantidades[clave] > 0) {
-            const importe = cantidades[clave] * PRECIOS[clave];
-            subtotal += importe;
-            mensaje += `${cantidades[clave]}x ${NOMBRES[clave]} — ${formatoMoneda(importe)}%0A`;
-        }
-    }
-    
-    const totalFinal = entrega === 'envio' ? subtotal + COSTO_ENVIO : subtotal;
-    mensaje += `%0A💰 *SUBTOTAL: ${formatoMoneda(subtotal)}*%0A`;
-    if (entrega === 'envio') mensaje += `🚚 *Envío: $1.500*%0A`;
-    if (hayQuesosBlandos) {
-        mensaje += `💡 *Hay productos que deben pesarse para poder ser cobrados, el valor de cada uno se enviará por WhatsApp*%0A`;
-    }
-    mensaje += `💰 *TOTAL A PAGAR AL ENTREGAR: ${formatoMoneda(totalFinal)} /+ VALOR DE LOS PRODUCTOS POR PESO*`;
-    
-    window.open(`https://wa.me/543412663345?text=${mensaje}`, '_blank');
 }
 </script>
 </body>
