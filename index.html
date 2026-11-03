@@ -1315,7 +1315,7 @@ async function enviarWhatsApp() {
     try {
         const respuesta = await fetch('https://mcldznfvurasijsmjrnp.supabase.co/functions/v1/create-public-order', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'apikey': 'sb_publishable_vTVzeA7myrdRD1mwFNH8Eg_jWATzNRF' },
             body: JSON.stringify({
                 customer_name: nombre,
                 customer_phone: telefono,
