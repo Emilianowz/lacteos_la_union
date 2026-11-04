@@ -950,7 +950,7 @@
           }
           line.append(name,detail);
           if(item.line_total===null && (item.sale_mode_snapshot==="weight" || details.pending_weighing)) {
-            const price=Number(productsCache.find(p=>p.id===item.product_id)?.price_per_kg);
+            const price=Number(findCatalogProductForOrderItem(item)?.price_per_kg);
             const weightWrap=document.createElement("div"); weightWrap.style.cssText="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-top:9px";
             const field=document.createElement("label"); field.style.cssText="flex:1;min-width:150px;margin:0";
             field.textContent="Completar peso real (kg)";
@@ -981,7 +981,7 @@
       if(!Number.isFinite(weight)||weight<=0) {
         showMessage($("orderDetailMessage"),"Ingresá un peso real mayor que cero, expresado en kg.","error");return;
       }
-      const product=productsCache.find(p=>p.id===item.product_id);
+      const product=findCatalogProductForOrderItem(item);
       const pricePerKg=Number(product?.price_per_kg);
       if(!Number.isFinite(pricePerKg)||pricePerKg<=0) {
         showMessage($("orderDetailMessage"),"No se puede calcular el importe: falta configurar el precio por kg del producto en el catálogo.","error");return;
