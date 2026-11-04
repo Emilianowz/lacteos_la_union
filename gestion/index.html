@@ -967,24 +967,27 @@
     }
     function findCatalogProductForOrderItem(item) {
       if(!item)return null;
-      if(item.product_id) {
-        const byId=productsCache.find(p=>p.id===item.product_id);
-        if(byId)return byId;
-      }
-      const normalizeName=value=>String(value||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLocaleLowerCase("es-AR").replace(/[^a-z0-9]+/g," ").trim();
+      const normalizeName=value=>String(value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("es-AR").replace(/[^a-z0-9]+/g," ").trim();
       const target=normalizeName(item.product_name_snapshot);
-      if(!target)return null;
-      const exact=productsCache.find(p=>normalizeName(p.name)===target);
-      if(exact)return exact;
-      // Alias: el pedido web guarda "MUZZARELLA BARRA", pero el catálogo usa el nombre completo.
-      const aliases={
-        "muzzarella barra":"muzzarella tremblay barra"
-      };
-      const catalogAlias=aliases[target];
-      if(catalogAlias) {
-        return productsCache.find(p=>normalizeName(p.name).startsWith(catalogAlias))||null;
+      const byId=item.product_id?productsCache.find(p=>p.id===item.product_id):null;
+
+      // Priorizar el nombre: algunos pedidos antiguos pueden tener un product_id incorrecto.
+      if(target) {
+        const exact=productsCache.find(p=>normalizeName(p.name)===target);
+        if(exact)return exact;
+
+        // El pedido web puede guardar "MUZZARELLA BARRA" y el catálogo el nombre completo.
+        const aliases={"muzzarella barra":"muzzarella tremblay barra"};
+        const catalogAlias=aliases[target];
+        if(catalogAlias) {
+          const matches=productsCache.filter(p=>normalizeName(p.name).startsWith(catalogAlias));
+          const withPrice=matches.find(p=>p.sale_mode==="weight" && Number(p.price_per_kg)>0);
+          if(withPrice)return withPrice;
+          if(matches.length)return matches[0];
+        }
       }
-      return null;
+      // Respaldo para productos renombrados cuyo nombre ya no coincide con el pedido.
+      return byId||null;
     }
     async function saveOrderItemWeight(item,input,button) {
       const weight=Number(input.value);
