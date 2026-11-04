@@ -1016,15 +1016,16 @@
         if(!(rows||[]).some(row=>row.line_total!==null && Number(row.line_total)===lineTotal)) {
           throw new Error("El importe del producto no aparece en los artículos del pedido; no se actualizaron los totales.");
         }
-        const discountPercent=Number(selectedOrder.discount_percent)||0;
+        const orderCustomer=customersCache.find(customer=>customer.id===selectedOrder.customer_id);
+        const discountPercent=orderCustomer?.customer_type==="comercio"?5:(Number(selectedOrder.discount_percent)||0);
         const discountAmount=Number((subtotal*discountPercent/100).toFixed(2));
         const deliveryFee=Number(selectedOrder.delivery_fee)||0;
         const total=Number((subtotal-discountAmount+deliveryFee).toFixed(2));
         const {error:orderError}=await db.from("orders").update({
-          subtotal,discount_amount:discountAmount,total
+          subtotal,discount_percent:discountPercent,discount_amount:discountAmount,total
         }).eq("id",selectedOrder.id);
         if(orderError)throw orderError;
-        selectedOrder={...selectedOrder,subtotal,discount_amount:discountAmount,total};
+        selectedOrder={...selectedOrder,subtotal,discount_percent:discountPercent,discount_amount:discountAmount,total};
         const cached=ordersCache.find(o=>o.id===selectedOrder.id);
         if(cached)Object.assign(cached,{subtotal,discount_amount:discountAmount,total});
         await openOrderDetails(selectedOrder.id);
