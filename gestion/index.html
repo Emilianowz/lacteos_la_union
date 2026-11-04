@@ -1003,13 +1003,19 @@
       try {
         const details={...(item.selection_details||{}),actual_weight_kg:weight,pending_weighing:false};
         const lineTotal=Number((weight*pricePerKg).toFixed(2));
-        const {error:itemError}=await db.from("order_items").update({
+        const {data:savedItem,error:itemError}=await db.from("order_items").update({
           selection_details:details,unit_price_snapshot:pricePerKg,line_total:lineTotal
-        }).eq("id",item.id).eq("order_id",selectedOrder.id);
+        }).eq("id",item.id).eq("order_id",selectedOrder.id).select("id,line_total").single();
         if(itemError)throw itemError;
+        if(!savedItem || Number(savedItem.line_total)!==lineTotal) {
+          throw new Error("El peso se ingresó, pero la base de datos no confirmó el importe del producto. No se actualizaron los totales.");
+        }
         const {data:rows,error:rowsError}=await db.from("order_items").select("line_total").eq("order_id",selectedOrder.id);
         if(rowsError)throw rowsError;
         const subtotal=Number((rows||[]).reduce((sum,row)=>sum+(row.line_total===null?0:Number(row.line_total)),0).toFixed(2));
+        if(!(rows||[]).some(row=>row.line_total!==null && Number(row.line_total)===lineTotal)) {
+          throw new Error("El importe del producto no aparece en los artículos del pedido; no se actualizaron los totales.");
+        }
         const discountPercent=Number(selectedOrder.discount_percent)||0;
         const discountAmount=Number((subtotal*discountPercent/100).toFixed(2));
         const deliveryFee=Number(selectedOrder.delivery_fee)||0;
