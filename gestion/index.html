@@ -949,8 +949,62 @@
             detail.textContent=description+" · "+(item.line_total===null?"Importe pendiente de pesaje":money(item.line_total));
           }
           line.append(name,detail);
+          if(item.line_total===null && (item.sale_mode_snapshot==="weight" || details.pending_weighing)) {
+            const price=Number(productsCache.find(p=>p.id===item.product_id)?.price_per_kg);
+            const weightWrap=document.createElement("div"); weightWrap.style.cssText="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-top:9px";
+            const field=document.createElement("label"); field.style.cssText="flex:1;min-width:150px;margin:0";
+            field.textContent="Completar peso real (kg)";
+            const input=document.createElement("input"); input.type="number"; input.min="0.001"; input.step="0.001"; input.placeholder="Ej.: 2.350"; input.value=details.actual_weight_kg??""; input.style.marginTop="5px";
+            const save=document.createElement("button"); save.type="button"; save.className="edit-button"; save.textContent="Guardar peso";
+            save.addEventListener("click",()=>saveOrderItemWeight(item,input,save));
+            field.append(input); weightWrap.append(field,save);
+            const hint=document.createElement("small"); hint.className="field-help"; hint.textContent=price>0?"Precio por kg: "+money(price):"No hay un precio por kg configurado en el catálogo.";
+            line.append(weightWrap,hint);
+          }
           content.append(line);
         });
+      }
+    }
+    async function saveOrderItemWeight(item,input,button) {
+      const weight=Number(input.value);
+      if(!Number.isFinite(weight)||weight<=0) {
+        showMessage($("orderDetailMessage"),"Ingresá un peso real mayor que cero, expresado en kg.","error");return;
+      }
+      const product=productsCache.find(p=>p.id===item.product_id);
+      const pricePerKg=Number(product?.price_per_kg);
+      if(!Number.isFinite(pricePerKg)||pricePerKg<=0) {
+        showMessage($("orderDetailMessage"),"No se puede calcular el importe: falta configurar el precio por kg del producto en el catálogo.","error");return;
+      }
+      button.disabled=true;button.textContent="Guardando…";
+      try {
+        const details={...(item.selection_details||{}),actual_weight_kg:weight,pending_weighing:false};
+        const lineTotal=Number((weight*pricePerKg).toFixed(2));
+        const {error:itemError}=await db.from("order_items").update({
+          selection_details:details,unit_price_snapshot:pricePerKg,line_total:lineTotal
+        }).eq("id",item.id).eq("order_id",selectedOrder.id);
+        if(itemError)throw itemError;
+        const {data:rows,error:rowsError}=await db.from("order_items").select("line_total").eq("order_id",selectedOrder.id);
+        if(rowsError)throw rowsError;
+        const subtotal=Number((rows||[]).reduce((sum,row)=>sum+(row.line_total===null?0:Number(row.line_total)),0).toFixed(2));
+        const discountPercent=Number(selectedOrder.discount_percent)||0;
+        const discountAmount=Number((subtotal*discountPercent/100).toFixed(2));
+        const deliveryFee=Number(selectedOrder.delivery_fee)||0;
+        const total=Number((subtotal-discountAmount+deliveryFee).toFixed(2));
+        const {error:orderError}=await db.from("orders").update({
+          subtotal,discount_amount:discountAmount,total
+        }).eq("id",selectedOrder.id);
+        if(orderError)throw orderError;
+        selectedOrder={...selectedOrder,subtotal,discount_amount:discountAmount,total};
+        const cached=ordersCache.find(o=>o.id===selectedOrder.id);
+        if(cached)Object.assign(cached,{subtotal,discount_amount:discountAmount,total});
+        await openOrderDetails(selectedOrder.id);
+        renderFilteredOrders();
+        renderOrders($("recentOrders"),ordersCache.slice(0,5));
+        showMessage($("orderDetailMessage"),"Peso guardado y totales actualizados correctamente.","ok");
+      } catch(error) {
+        showMessage($("orderDetailMessage"),"No se pudo guardar el peso: "+(error.message||"Error desconocido"),"error");
+      } finally {
+        button.disabled=false;button.textContent="Guardar peso";
       }
     }
     async function saveOrderStatus() {
