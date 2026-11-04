@@ -719,7 +719,7 @@
       const item=manualCart[index];
       if(!item)return;
       const weight=Number(value);
-      const product=productsCache.find(p=>p.id===item.product_id);
+      const product=findCatalogProductForOrderItem(item);
       const pricePerKg=Number(product?.price_per_kg);
       if(value==="" || !Number.isFinite(weight) || weight<=0) {
         item.selection_details={...(item.selection_details||{}),pending_weighing:true};
@@ -754,7 +754,7 @@
           const weightLabel=document.createElement("label");weightLabel.textContent="Peso real (kg)";
           const weightInput=document.createElement("input");weightInput.type="number";weightInput.min="0.001";weightInput.step="0.001";weightInput.placeholder="Ej.: 8.250";weightInput.value=details.actual_weight_kg??"";
           weightInput.addEventListener("change",()=>updateWeightedItemWeight(i,weightInput.value));
-          const price=Number(productsCache.find(p=>p.id===item.product_id)?.price_per_kg);
+          const price=Number(findCatalogProductForOrderItem(item)?.price_per_kg);
           const hint=document.createElement("small");hint.className="field-help";hint.textContent=price>0?"Precio por kg: "+manualPrice(price):"Falta configurar el precio por kg en el catálogo.";
           weightBox.append(weightLabel,weightInput,hint);left.append(weightBox);
         }
@@ -964,6 +964,17 @@
           content.append(line);
         });
       }
+    }
+    function findCatalogProductForOrderItem(item) {
+      if(!item)return null;
+      if(item.product_id) {
+        const byId=productsCache.find(p=>p.id===item.product_id);
+        if(byId)return byId;
+      }
+      const normalizeName=value=>String(value||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLocaleLowerCase("es-AR").replace(/[^a-z0-9]+/g," ").trim();
+      const target=normalizeName(item.product_name_snapshot);
+      if(!target)return null;
+      return productsCache.find(p=>normalizeName(p.name)===target)||null;
     }
     async function saveOrderItemWeight(item,input,button) {
       const weight=Number(input.value);
