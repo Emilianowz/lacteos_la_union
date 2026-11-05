@@ -829,8 +829,10 @@
           const keptIds=existingRows.map(item=>item.id);
           const removedIds=editingOrderItemIds.filter(id=>!keptIds.includes(id));
           if(removedIds.length) {
-            const {error}=await db.from("order_items").delete().eq("order_id",editingOrderId).in("id",removedIds);
-            if(error)throw new Error("El pedido se actualizó, pero no se pudieron quitar algunos productos: "+error.message);
+            const {data:deletedItems,error}=await db.from("order_items").delete().eq("order_id",editingOrderId).in("id",removedIds).select("id");
+            if(error)throw new Error("No se pudieron quitar los productos del pedido. Verificá los permisos de eliminación en Supabase: "+error.message);
+            const deletedCount=deletedItems?.length||0;
+            if(deletedCount!==removedIds.length)throw new Error("Supabase no confirmó la eliminación de todos los productos ("+deletedCount+" de "+removedIds.length+"). Revisá la política DELETE de order_items.");
           }
           const orderNumber=ordersCache.find(o=>o.id===editingOrderId)?.order_number;
           closeManualOrder();await loadData();
