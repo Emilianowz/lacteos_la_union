@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lácteos La Unión — Tarjetas QR</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        @page { size: A4 portrait; margin: 0; }
+        body { background: white; }
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 5mm;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5mm;
+        }
+        .card img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .page { padding: 0; gap: 3mm; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <div class="card">
+            <img src="https://i.imgur.com/9KxzWfL.png" alt="Lácteos La Unión - Tarjeta QR">
+        </div>
+        <div class="card">
+            <img src="https://i.imgur.com/9KxzWfL.png" alt="Lácteos La Unión - Tarjeta QR">
+        </div>
+    </div>
+</body>
+</html>
