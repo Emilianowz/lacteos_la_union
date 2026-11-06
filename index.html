@@ -1494,6 +1494,7 @@ function actualizarSelectoresCatalogo(tarjeta, producto) {
 async function cargarCatalogoPublico() {
     const boton = document.getElementById('btnPedir');
     if (boton) boton.disabled = true;
+    document.querySelectorAll('.producto button, .producto select').forEach(control => control.disabled = true);
     try {
         const respuesta = await fetch(
             SUPABASE_URL_PUBLICO + '/rest/v1/products?select=id,sku,name,sale_mode,unit_label,price,price_per_kg,price_per_100g,selection_config,active,sort_order&active=eq.true&order=sort_order.asc',
@@ -1540,6 +1541,9 @@ async function cargarCatalogoPublico() {
 
         const sinTarjeta = productos.filter(producto => !clavesMostradas.has(claveCatalogoDesdeSku(producto.sku)));
         if (sinTarjeta.length) console.warn('Productos activos aún sin tarjeta en la tienda:', sinTarjeta.map(p => p.sku));
+        document.querySelectorAll('.producto').forEach(tarjeta => {
+            if (tarjeta.style.display !== 'none') tarjeta.querySelectorAll('button, select').forEach(control => control.disabled = false);
+        });
         catalogoCargado = true;
         verificarSeleccion();
     } catch (error) {
