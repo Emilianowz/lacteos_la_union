@@ -999,6 +999,11 @@ const NOMBRES = {
     cheddar_untar_pouch: 'QUESO CHEDDAR PARA UNTAR POUCH 4 kg x unidad'
 };
 
+const PRODUCTOS_CATALOGO = Object.create(null);
+let catalogoCargado = false;
+const SUPABASE_URL_PUBLICO = 'https://mcldznfvurasijsmjrnp.supabase.co';
+const SUPABASE_KEY_PUBLICA = 'sb_publishable_vTVzeA7myrdRD1mwFNH8Eg_jWATzNRF';
+
 const cantidades = {};
 const seleccionesPeso = {};
 const cantidadesPeso = { muzz_cilindro: 0, salamin_pg_moriconi: 0, salamin_pf_moriconi: 0, chorizo_moriconi: 0 };
@@ -1023,7 +1028,7 @@ function verificarSeleccion() {
     
     const hayAlgoSeleccionado = hayCantidadFija || haySeleccionPeso || hayCantidadPeso || hayPorcion || hayFetas;
     
-    document.getElementById('btnPedir').disabled = !hayAlgoSeleccionado;
+    document.getElementById('btnPedir').disabled = !catalogoCargado || !hayAlgoSeleccionado;
 }
 
 function calcularTotal() {
@@ -1077,6 +1082,8 @@ function cambiarCantidadPeso(clave, delta) {
 
 // ============== SELECCIÓN DE QUESOS BLANDOS ==============
 function seleccionarPeso(clave, valorStr, nombre) {
+    const productoCatalogo = PRODUCTOS_CATALOGO[clave];
+    if (productoCatalogo) nombre = productoCatalogo.name;
     const valor = parseFloat(valorStr);
     const opciones = {
         '0.25': '1/4 horma', '0.5': '1/2 horma', '1': '1 horma', '2': '2 hormas',
@@ -1097,6 +1104,11 @@ function seleccionarPeso(clave, valorStr, nombre) {
 
 // ============== PRODUCTOS CORTADOS EN FETAS ==============
 function seleccionarFetas(clave, nombre, precio100g, gramosStr) {
+    const productoCatalogo = PRODUCTOS_CATALOGO[clave];
+    if (productoCatalogo) {
+        nombre = productoCatalogo.name;
+        precio100g = Number(productoCatalogo.price_per_100g) || precio100g;
+    }
     const gramos = parseInt(gramosStr, 10) || 0;
     const texto = document.getElementById(`fetas_${clave}_texto`);
     if (gramos > 0) {
@@ -1215,7 +1227,7 @@ function actualizarResumen() {
             if (cantidadesPeso[clave] > 0) {
                 const nombresPeso = { muzz_cilindro: 'MUZZARELLA CILINDRO (5kg completo)', salamin_pg_moriconi: 'SALAMÍN P/G MORICONI', salamin_pf_moriconi: 'SALAMÍN P/F MORICONI', chorizo_moriconi: 'CHORIZO MORICONI' };
                 const div = document.createElement('div'); div.className = 'res-item peso';
-                div.innerHTML = `<span>${nombresPeso[clave] || clave}</span><span>${cantidadesPeso[clave]}x pieza completa · A cobrar al pesar</span>`; lista.appendChild(div);
+                div.innerHTML = `<span>${PRODUCTOS_CATALOGO[clave]?.name || nombresPeso[clave] || clave}</span><span>${cantidadesPeso[clave]}x pieza completa · A cobrar al pesar</span>`; lista.appendChild(div);
             }
         }
         
@@ -1224,14 +1236,14 @@ function actualizarResumen() {
             const item = seleccionesPorcion[clave]; const div = document.createElement('div'); div.className = 'res-item peso';
             const texto = item.tipo === 'monto' ? `~${item.valor}` : item.tipo === 'peso' ? `~${item.gramos} gr` : item.etiqueta;
             const nombres = { sardo_trem: 'SARDO TREMBLAY', holanda_verona: 'HOLANDA LA VERONA', romanito_quesera: 'ROMANITO S/P LA QUESERA' };
-            div.innerHTML = `<span>${nombres[clave] || clave}</span><span>${texto} · A cobrar al pesar</span>`; lista.appendChild(div);
+            div.innerHTML = `<span>${PRODUCTOS_CATALOGO[clave]?.name || nombres[clave] || clave}</span><span>${texto} · A cobrar al pesar</span>`; lista.appendChild(div);
         }
         
         if (quesoAzul) {
             const div = document.createElement('div');
             div.className = 'res-item peso';
             const texto = quesoAzul.tipo === 'monto' ? `~${quesoAzul.valor}` : quesoAzul.tipo === 'peso' ? `~${quesoAzul.gramos} gr` : quesoAzul.etiqueta;
-            div.innerHTML = `<span>QUESO AZUL LA QUESERA</span><span>${texto} · A cobrar al pesar</span>`;
+            div.innerHTML = `<span>${PRODUCTOS_CATALOGO.azul?.name || 'QUESO AZUL LA QUESERA'}</span><span>${texto} · A cobrar al pesar</span>`;
             lista.appendChild(div);
         }
         
@@ -1277,9 +1289,10 @@ function construirItemsPedido() {
     for (const clave in cantidades) {
         const cantidad = Number(cantidades[clave]) || 0;
         if (cantidad > 0) items.push({
+            product_id: PRODUCTOS_CATALOGO[clave]?.id || null,
             product_name_snapshot: NOMBRES[clave] || clave,
             sale_mode_snapshot: 'unit',
-            unit_label_snapshot: 'unidad',
+            unit_label_snapshot: PRODUCTOS_CATALOGO[clave]?.unit_label || 'unidad',
             quantity: cantidad,
             unit_price_snapshot: PRECIOS[clave],
             line_total: cantidad * PRECIOS[clave],
@@ -1289,6 +1302,7 @@ function construirItemsPedido() {
     for (const clave in seleccionesFetas) {
         const item = seleccionesFetas[clave];
         items.push({
+            product_id: PRODUCTOS_CATALOGO[clave]?.id || null,
             product_name_snapshot: item.nombre,
             sale_mode_snapshot: 'sliced',
             unit_label_snapshot: '100 g',
@@ -1301,9 +1315,10 @@ function construirItemsPedido() {
     for (const clave in seleccionesPeso) {
         const item = seleccionesPeso[clave];
         items.push({
+            product_id: PRODUCTOS_CATALOGO[clave]?.id || null,
             product_name_snapshot: item.nombre,
             sale_mode_snapshot: 'weight',
-            unit_label_snapshot: 'pieza',
+            unit_label_snapshot: PRODUCTOS_CATALOGO[clave]?.unit_label || 'pieza',
             quantity: 1,
             unit_price_snapshot: null,
             line_total: null,
@@ -1319,9 +1334,10 @@ function construirItemsPedido() {
     for (const clave in cantidadesPeso) {
         const cantidad = Number(cantidadesPeso[clave]) || 0;
         if (cantidad > 0) items.push({
-            product_name_snapshot: nombresPeso[clave] || clave,
+            product_id: PRODUCTOS_CATALOGO[clave]?.id || null,
+            product_name_snapshot: PRODUCTOS_CATALOGO[clave]?.name || nombresPeso[clave] || clave,
             sale_mode_snapshot: 'weight',
-            unit_label_snapshot: 'pieza',
+            unit_label_snapshot: PRODUCTOS_CATALOGO[clave]?.unit_label || 'pieza',
             quantity: cantidad,
             unit_price_snapshot: null,
             line_total: null,
@@ -1342,9 +1358,10 @@ function construirItemsPedido() {
             : item.tipo === 'peso' ? 'Peso estimado: ' + item.gramos + ' g'
             : item.etiqueta;
         items.push({
-            product_name_snapshot: nombresPorcion[clave] || clave,
+            product_id: PRODUCTOS_CATALOGO[clave]?.id || null,
+            product_name_snapshot: PRODUCTOS_CATALOGO[clave]?.name || NOMBRES[clave] || nombresPorcion[clave] || clave,
             sale_mode_snapshot: 'portion',
-            unit_label_snapshot: 'porción',
+            unit_label_snapshot: PRODUCTOS_CATALOGO[clave]?.unit_label || 'porción',
             quantity: 1,
             unit_price_snapshot: null,
             line_total: null,
@@ -1429,6 +1446,112 @@ async function enviarWhatsApp() {
         if (boton) { boton.disabled = false; boton.textContent = '📤 Enviar por WhatsApp'; }
     }
 }
+
+function claveCatalogoDesdeSku(sku) {
+    let clave = String(sku || '').split('_').slice(1).join('_');
+    if (clave.startsWith('fetas_')) clave = clave.slice(6);
+    if (clave.endsWith('_monto')) clave = clave.slice(0, -6);
+    if (clave === 'entrega') clave = 'palitos_fritos_80';
+    return clave;
+}
+
+function claveCatalogoDesdeTarjeta(tarjeta) {
+    const control = tarjeta.querySelector('select[id], .cant-num[id]');
+    if (!control) return null;
+    const id = control.id;
+    if (id.startsWith('sel_') && id.endsWith('_monto')) return id.slice(4, -6);
+    if (id.startsWith('sel_')) return id.slice(4);
+    if (id.startsWith('fetas_')) return id.slice(6);
+    if (id.startsWith('cant_')) return id.slice(5);
+    return null;
+}
+
+function actualizarSelectoresCatalogo(tarjeta, producto) {
+    if (!['weight', 'portion', 'sliced'].includes(producto.sale_mode)) return;
+    const selectores = producto.selection_config?.selectors;
+    if (!Array.isArray(selectores)) return;
+    selectores.forEach(selector => {
+        const select = document.getElementById(selector.id);
+        if (!select || !tarjeta.contains(select) || !Array.isArray(selector.options)) return;
+        const textoInicial = select.options[0]?.textContent || '— Seleccioná una opción —';
+        select.replaceChildren();
+        const inicial = document.createElement('option');
+        inicial.value = '0';
+        inicial.textContent = textoInicial;
+        select.appendChild(inicial);
+        selector.options.forEach(opcion => {
+            const option = document.createElement('option');
+            let value = String(opcion.value);
+            if (producto.sale_mode === 'weight' && producto.unit_label === 'barra' && /^\d+(?:\.\d+)?$/.test(value)) value += '-barra';
+            if (producto.sale_mode === 'weight' && producto.unit_label === 'pieza' && /^\d+(?:\.\d+)?$/.test(value)) value += '-pieza';
+            option.value = value;
+            option.textContent = opcion.label;
+            select.appendChild(option);
+        });
+    });
+}
+
+async function cargarCatalogoPublico() {
+    const boton = document.getElementById('btnPedir');
+    if (boton) boton.disabled = true;
+    try {
+        const respuesta = await fetch(
+            SUPABASE_URL_PUBLICO + '/rest/v1/products?select=id,sku,name,sale_mode,unit_label,price,price_per_kg,price_per_100g,selection_config,active,sort_order&active=eq.true&order=sort_order.asc',
+            { headers: { apikey: SUPABASE_KEY_PUBLICA, Authorization: 'Bearer ' + SUPABASE_KEY_PUBLICA } }
+        );
+        if (!respuesta.ok) throw new Error('HTTP ' + respuesta.status);
+        const productos = await respuesta.json();
+        if (!Array.isArray(productos) || !productos.length) throw new Error('El catálogo no devolvió productos activos.');
+
+        const porClave = Object.create(null);
+        productos.forEach(producto => {
+            const clave = claveCatalogoDesdeSku(producto.sku);
+            if (clave) porClave[clave] = producto;
+        });
+
+        const clavesMostradas = new Set();
+        document.querySelectorAll('.producto').forEach(tarjeta => {
+            const clave = claveCatalogoDesdeTarjeta(tarjeta);
+            const producto = clave ? porClave[clave] : null;
+            if (!producto) {
+                tarjeta.style.display = 'none';
+                return;
+            }
+            tarjeta.style.display = '';
+            clavesMostradas.add(clave);
+            PRODUCTOS_CATALOGO[clave] = producto;
+            NOMBRES[clave] = producto.name;
+            if (producto.sale_mode === 'unit') PRECIOS[clave] = Number(producto.price) || 0;
+
+            const nombre = tarjeta.querySelector('.prod-nombre');
+            const precio = tarjeta.querySelector('.prod-precio');
+            if (nombre) nombre.textContent = producto.name;
+            if (precio) {
+                if (producto.sale_mode === 'sliced') {
+                    precio.textContent = formatoMoneda(producto.price_per_100g) + ' los 100 Gramos';
+                } else if (producto.sale_mode === 'weight' || producto.sale_mode === 'portion') {
+                    precio.textContent = formatoMoneda(producto.price_per_kg) + ' / kg — Se cobra al pesar';
+                } else {
+                    precio.textContent = formatoMoneda(producto.price);
+                }
+            }
+            actualizarSelectoresCatalogo(tarjeta, producto);
+        });
+
+        const sinTarjeta = productos.filter(producto => !clavesMostradas.has(claveCatalogoDesdeSku(producto.sku)));
+        if (sinTarjeta.length) console.warn('Productos activos aún sin tarjeta en la tienda:', sinTarjeta.map(p => p.sku));
+        catalogoCargado = true;
+        verificarSeleccion();
+    } catch (error) {
+        console.error('No se pudo cargar el catálogo público desde Supabase:', error);
+        catalogoCargado = false;
+        if (boton) boton.disabled = true;
+        mostrarAviso('No pudimos cargar el catálogo actualizado. Revisá tu conexión e intentá recargar la página.');
+    }
+}
+
+cargarCatalogoPublico();
+
 </script>
 </body>
 </html>
