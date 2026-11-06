@@ -50,8 +50,12 @@ Deno.serve(async (req: Request) => {
           (unitPrice !== null && (!Number.isFinite(unitPrice) || unitPrice < 0))) {
         throw new Error("Hay un producto con datos inválidos.");
       }
+      const productId = item.product_id == null ? null : String(item.product_id);
+      if (productId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(productId)) {
+        throw new Error("Hay un producto con un identificador inválido.");
+      }
       return {
-        product_id: null,
+        product_id: productId,
         product_name_snapshot: String(item.product_name_snapshot).slice(0, 180),
         sale_mode_snapshot: mode,
         unit_label_snapshot: String(item.unit_label_snapshot ?? "unidad").slice(0, 40),
