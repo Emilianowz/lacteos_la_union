@@ -74,6 +74,16 @@ Deno.serve(async (req: Request) => {
     if (!supabaseUrl || !serviceKey) throw new Error("La función no está configurada en Supabase.");
 
     const db = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+    const productIds = [...new Set(cleanItems.flatMap((item) => item.product_id ? [item.product_id] : []))];
+    if (productIds.length) {
+      const { data: availableProducts, error: catalogError } = await db.from("products")
+        .select("id,active").in("id", productIds);
+      if (catalogError) throw catalogError;
+      const activeProductIds = new Set((availableProducts || []).filter((product: any) => product.active).map((product: any) => product.id));
+      if (productIds.some((id) => !activeProductIds.has(id))) {
+        return json(409, { error: "Uno o más productos ya no están disponibles. Actualizá la página y volvé a armar el pedido." });
+      }
+    }
     const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
     const digits = (value: string) => value.replace(/\D/g, "");
     let customerId: string | null = null;
