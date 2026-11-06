@@ -1497,7 +1497,7 @@ async function cargarCatalogoPublico() {
     try {
         const respuesta = await fetch(
             SUPABASE_URL_PUBLICO + '/rest/v1/products?select=id,sku,name,sale_mode,unit_label,price,price_per_kg,price_per_100g,selection_config,active,sort_order&active=eq.true&order=sort_order.asc',
-            { headers: { apikey: SUPABASE_KEY_PUBLICA, Authorization: 'Bearer ' + SUPABASE_KEY_PUBLICA } }
+            { headers: { apikey: SUPABASE_KEY_PUBLICA } }
         );
         if (!respuesta.ok) throw new Error('HTTP ' + respuesta.status);
         const productos = await respuesta.json();
