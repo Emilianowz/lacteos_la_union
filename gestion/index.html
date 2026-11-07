@@ -92,6 +92,22 @@
       #routePanel .route-stop-actions{display:none!important}
       #routePanel .route-number{font-size:17px}
     }
+    @media print{
+      @page{size:80mm auto;margin:3mm}
+      body{background:#fff!important}
+      body *{visibility:hidden!important}
+      #orderTicketPrint,#orderTicketPrint *{visibility:visible!important}
+      #orderTicketPrint{display:block!important;position:absolute;left:0;top:0;width:74mm;margin:0;padding:0;color:#000;background:#fff;font:10px/1.35 Arial,sans-serif}
+      #orderTicketPrint .ticket-logo{display:block;width:30mm;height:auto;max-height:18mm;object-fit:contain;margin:0 auto 2mm}
+      #orderTicketPrint h2{font-size:14px;text-align:center;margin:0 0 1mm}
+      #orderTicketPrint .ticket-center{text-align:center}
+      #orderTicketPrint .ticket-rule{border-top:1px dashed #000;margin:2mm 0}
+      #orderTicketPrint .ticket-row{display:flex;justify-content:space-between;gap:2mm;margin:1mm 0}
+      #orderTicketPrint .ticket-product{margin:2mm 0}
+      #orderTicketPrint .ticket-product strong{display:block}
+      #orderTicketPrint .ticket-total{font-size:12px;font-weight:700}
+    }
+    #orderTicketPrint{display:none}
     @media(min-width:600px){main{padding-top:26px}.stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
   </style>
 </head>
@@ -208,7 +224,7 @@
         </section>
         <div id="ordersList" class="list"></div>
         <section id="orderDetailPanel" class="order-detail hidden" aria-live="polite">
-          <div class="row"><h3 id="orderDetailTitle">Detalle del pedido</h3><div class="order-actions"><button id="editOrderButton" class="edit-button" type="button">Editar pedido</button><button id="closeOrderDetail" class="secondary edit-button" type="button">Cerrar</button></div></div>
+          <div class="row"><h3 id="orderDetailTitle">Detalle del pedido</h3><div class="order-actions"><button id="printOrderButton" class="edit-button" type="button">🖨️ Imprimir ticket</button><button id="editOrderButton" class="edit-button" type="button">Editar pedido</button><button id="closeOrderDetail" class="secondary edit-button" type="button">Cerrar</button></div></div>
           <div id="orderDetailContent"></div>
           <div class="order-status-controls">
             <label for="orderStatusSelect">Estado del pedido
@@ -253,6 +269,7 @@
         <div id="productsList" class="list"></div>
       </section>
     </section>
+    <section id="orderTicketPrint" aria-hidden="true"></section>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
@@ -294,6 +311,7 @@
     let productsCache = [];
     let ordersCache = [];
     let selectedOrder = null;
+    let selectedOrderItems = [];
     let categoriesCache = [];
     let customersCache = [];
     let manualCart = [];
@@ -913,6 +931,7 @@
         $("orderDetailContent").textContent = "No se pudo cargar el detalle: " + error.message;
         return;
       }
+      selectedOrderItems = items || [];
       const content = $("orderDetailContent");
       content.innerHTML = "";
       const grid = document.createElement("div"); grid.className="detail-grid";
@@ -966,6 +985,27 @@
           content.append(line);
         });
       }
+    }
+    function escapeTicketHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
+    }
+    function printOrderTicket() {
+      if(!selectedOrder) return;
+      const order=selectedOrder, items=selectedOrderItems||[];
+      const logo="https://raw.githubusercontent.com/Emilianowz/lacteos_la_union/main/32E93E2C-F1DA-4913-A6F4-C34D675EE26B.png";
+      const payment=({efectivo:"Efectivo",transferencia:"Transferencia",debito:"Débito",cuenta_corriente:"Cuenta corriente"})[order.payment_method]||order.payment_method||"—";
+      const rows=items.map(item=>{
+        const details=item.selection_details||{}, qty=Number(item.quantity)||0;
+        const description=details.selection_label||(qty+" "+(item.unit_label_snapshot||""));
+        const amount=item.line_total==null?"Pendiente de pesaje":money(item.line_total);
+        const weight=details.actual_weight_kg?" · Peso real: "+Number(details.actual_weight_kg).toLocaleString("es-AR")+" kg":"";
+        return '<div class="ticket-product"><strong>'+escapeTicketHtml(item.product_name_snapshot)+'</strong><div>'+escapeTicketHtml(description+weight)+'</div><div class="ticket-row"><span>Precio: '+escapeTicketHtml(money(item.unit_price_snapshot))+'</span><strong>'+escapeTicketHtml(amount)+'</strong></div></div>';
+      }).join("");
+      const discount=Number(order.discount_amount)>0?'<div class="ticket-row"><span>Descuento ('+escapeTicketHtml((Number(order.discount_percent)||5)+'%')+')</span><span>-'+escapeTicketHtml(money(order.discount_amount))+'</span></div>':"";
+      const html='<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ticket pedido #'+escapeTicketHtml(order.order_number)+'</title><style>@page{size:80mm auto;margin:3mm}*{box-sizing:border-box}body{width:74mm;margin:0 auto;color:#000;font:10px/1.35 Arial,sans-serif}.logo{display:block;width:30mm;max-height:18mm;object-fit:contain;margin:0 auto 2mm}h2{font-size:14px;text-align:center;margin:0 0 1mm}.center{text-align:center}.rule{border-top:1px dashed #000;margin:2mm 0}.row{display:flex;justify-content:space-between;gap:2mm;margin:1mm 0}.product{margin:2mm 0}.product strong{display:block}.total{font-size:12px;font-weight:bold}.footer{text-align:center;margin-top:4mm}@media screen{body{padding:8px}}</style></head><body><img class="logo" src="'+logo+'" onerror="this.style.display=\'none\'"><h2>LÁCTEOS LA UNIÓN</h2><div class="center">Ticket de pedido</div><div class="rule"></div><div><strong>Pedido #'+escapeTicketHtml(order.order_number)+'</strong></div><div>Fecha: '+escapeTicketHtml(date(order.created_at))+'</div><div>Cliente: '+escapeTicketHtml(order.customer_name)+'</div><div>Teléfono: '+escapeTicketHtml(order.customer_phone||"—")+'</div><div>Entrega: '+escapeTicketHtml(order.delivery_type==="envio"?"Envío a domicilio":"Retiro")+'</div><div>Dirección: '+escapeTicketHtml(order.delivery_address||"No especificada")+'</div><div>Pago: '+escapeTicketHtml(payment)+'</div><div class="rule"></div><strong>PRODUCTOS</strong>'+rows+'<div class="rule"></div><div class="row"><span>Subtotal</span><span>'+escapeTicketHtml(money(order.subtotal))+'</span></div>'+discount+'<div class="row"><span>Envío</span><span>'+escapeTicketHtml(money(order.delivery_fee))+'</span></div><div class="row total"><span>TOTAL</span><span>'+escapeTicketHtml(money(order.total))+'</span></div>'+(order.notes?'<div class="rule"></div><div><strong>Observaciones:</strong> '+escapeTicketHtml(order.notes)+'</div>':"")+'<div class="rule"></div><div class="footer">Gracias por tu compra</div><script>window.onload=()=>{setTimeout(()=>{window.print()},350)};<\/script></body></html>';
+      const popup=window.open("","_blank","width=420,height=700");
+      if(!popup){showMessage($("orderDetailMessage"),"El navegador bloqueó la ventana de impresión. Permití las ventanas emergentes para este sitio y volvé a intentar.","error");return;}
+      popup.document.open();popup.document.write(html);popup.document.close();
     }
     function findCatalogProductForOrderItem(item) {
       if(!item)return null;
@@ -1104,6 +1144,7 @@
       const button=e.target.closest("button[data-order-id]");
       if(button) openOrderDetails(button.dataset.orderId);
     });
+    $("printOrderButton").addEventListener("click",printOrderTicket);
     $("saveOrderStatus").addEventListener("click",saveOrderStatus);
     $("editOrderButton").addEventListener("click",openOrderForEditing);
     $("newOrderButton").addEventListener("click",openManualOrder);
