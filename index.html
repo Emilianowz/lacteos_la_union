@@ -834,8 +834,13 @@
             </select>
         </div>
         <div class="form-group" id="campoDomicilio" hidden>
-            <label for="domicilio">Domicilio de entrega *</label>
-            <input type="text" id="domicilio" placeholder="Ingresá calle, número, piso y departamento" autocomplete="street-address" oninput="invalidarCotizacionEnvio()" onblur="cotizarEnvio()"><div id="estadoCotizacionEnvio" style="margin-top:6px;font-size:13px;color:#555;">El costo se calcula según el recorrido por calles desde Santiago del Estero 1047.</div>
+            <label for="localidadEntrega">Localidad de entrega *</label>
+            <select id="localidadEntrega" onchange="invalidarCotizacionEnvio()">
+                <option value="San Lorenzo" selected>San Lorenzo</option>
+            </select>
+            <label for="domicilio" style="display:block;margin-top:10px;">Calle y altura *</label>
+            <input type="text" id="domicilio" placeholder="Ingresá calle y número" autocomplete="street-address" oninput="invalidarCotizacionEnvio()" onblur="cotizarEnvio()">
+            <div id="estadoCotizacionEnvio" style="margin-top:6px;font-size:13px;color:#555;">El costo se calcula según el recorrido por calles desde Santiago del Estero 1047.</div>
         </div>
         <div class="form-group">
             <label>Método de pago *</label>
@@ -1212,7 +1217,7 @@ async function cotizarEnvio() {
         const respuesta = await fetch('https://mcldznfvurasijsmjrnp.supabase.co/functions/v1/create-public-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'apikey': 'sb_publishable_vTVzeA7myrdRD1mwFNH8Eg_jWATzNRF' },
-            body: JSON.stringify({ action: 'quote_delivery', delivery_type: 'envio', delivery_address: domicilio })
+            body: JSON.stringify({ action: 'quote_delivery', delivery_type: 'envio', delivery_address: domicilio, delivery_locality: document.getElementById('localidadEntrega').value })
         });
         const resultado = await respuesta.json().catch(() => ({}));
         if (!respuesta.ok || !resultado.ok) throw new Error(resultado.error || 'No pudimos calcular el envío.');
@@ -1480,6 +1485,7 @@ async function enviarWhatsApp() {
                 customer_address: tipoCliente === 'comercio' ? domicilioComercio : null,
                 delivery_type: entrega,
                 delivery_address: entrega === 'envio' ? domicilio : null,
+                delivery_locality: entrega === 'envio' ? document.getElementById('localidadEntrega').value : null,
                 payment_method: pago,
                 items
             })
