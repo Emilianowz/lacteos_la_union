@@ -224,7 +224,7 @@
         </section>
         <div id="ordersList" class="list"></div>
         <section id="orderDetailPanel" class="order-detail hidden" aria-live="polite">
-          <div class="row"><h3 id="orderDetailTitle">Detalle del pedido</h3><div class="order-actions"><button id="printOrderButton" class="edit-button" type="button">🖨️ Imprimir ticket</button><button id="editOrderButton" class="edit-button" type="button">Editar pedido</button><button id="closeOrderDetail" class="secondary edit-button" type="button">Cerrar</button></div></div>
+          <div class="row"><h3 id="orderDetailTitle">Detalle del pedido</h3><div class="order-actions"><button id="printOrderButton" class="edit-button" type="button">📄 Generar PDF 58 mm</button><button id="editOrderButton" class="edit-button" type="button">Editar pedido</button><button id="closeOrderDetail" class="secondary edit-button" type="button">Cerrar</button></div></div>
           <div id="orderDetailContent"></div>
           <div class="order-status-controls">
             <label for="orderStatusSelect">Estado del pedido
@@ -989,6 +989,111 @@
     function escapeTicketHtml(value) {
       return String(value ?? "").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
     }
+    let jsPdfLoaderPromise=null;
+    function loadJsPDF() {
+      if(window.jspdf?.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
+      if(jsPdfLoaderPromise) return jsPdfLoaderPromise;
+      jsPdfLoaderPromise=new Promise((resolve,reject)=>{
+        const script=document.createElement("script");
+        script.src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js";
+        script.onload=()=>window.jspdf?.jsPDF?resolve(window.jspdf.jsPDF):reject(new Error("No se pudo inicializar el generador de PDF."));
+        script.onerror=()=>reject(new Error("No se pudo cargar el generador de PDF. Revisá tu conexión e intentá nuevamente."));
+        document.head.append(script);
+      });
+      return jsPdfLoaderPromise;
+    }
+    async function generateOrderTicketPdf() {
+      if(!selectedOrder) return;
+      const order=selectedOrder, items=selectedOrderItems||[];
+      const button=$("printOrderButton");
+      const preview=window.open("about:blank","_blank");
+      if(!preview) {
+        showMessage($("orderDetailMessage"),"El iPhone bloqueó la apertura del PDF. Permití ventanas emergentes para la gestión y volvé a intentar.", "error");
+        return;
+      }
+      button.disabled=true;button.textContent="Generando PDF…";
+      try {
+        const JsPDF=await loadJsPDF();
+        const doc=new JsPDF({orientation:"portrait",unit:"mm",format:[58,1000],compress:true});
+        const margin=3, width=52;
+        let y=4;
+        const ops=[];
+        const addText=(value,size=8,bold=false,align="left",gap=0)=>{
+          doc.setFont("helvetica",bold?"bold":"normal");doc.setFontSize(size);
+          const lines=doc.splitTextToSize(String(value??""),width);
+          const lineHeight=size*0.42+0.45;
+          ops.push({type:"text",lines,size,bold,align,y});
+          y+=lines.length*lineHeight+gap;
+        };
+        const rule=()=>{ops.push({type:"rule",y});y+=3.2;};
+        const row=(label,value,bold=false)=>{
+          addText(String(label)+": "+String(value??"—"),bold?8.5:7.7,bold,"left",0.5);
+        };
+        // Reservar espacio para el logotipo; si no se puede cargar, se conserva el encabezado textual.
+        let logoData=null;
+        try {
+          const response=await fetch("https://raw.githubusercontent.com/Emilianowz/lacteos_la_union/main/32E93E2C-F1DA-4913-A6F4-C34D675EE26B.png",{mode:"cors"});
+          if(response.ok) {
+            const blob=await response.blob();
+            logoData=await new Promise(resolve=>{
+              const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>resolve(null);reader.readAsDataURL(blob);
+            });
+          }
+        } catch(_){}
+        if(logoData){ops.push({type:"image",data:logoData,x:14,y,w:30,h:17});y+=19;}
+        addText("LÁCTEOS LA UNIÓN",11,true,"center",0.5);
+        addText("Ticket de pedido",8,false,"center");
+        rule();
+        addText("Pedido #"+order.order_number,9,true);
+        row("Fecha",date(order.created_at));
+        row("Cliente",order.customer_name);
+        row("Teléfono",order.customer_phone||"—");
+        row("Entrega",order.delivery_type==="envio"?"Envío a domicilio":"Retiro");
+        row("Dirección",order.delivery_address||"No especificada");
+        row("Pago",({efectivo:"Efectivo",transferencia:"Transferencia",debito:"Débito",cuenta_corriente:"Cuenta corriente"})[order.payment_method]||order.payment_method||"—");
+        rule();
+        addText("PRODUCTOS",8.5,true);
+        items.forEach(item=>{
+          const details=item.selection_details||{},qty=Number(item.quantity)||0;
+          const description=details.selection_label||(qty+" "+(item.unit_label_snapshot||""));
+          const amount=item.line_total==null?"Pendiente de pesaje":money(item.line_total);
+          const weight=details.actual_weight_kg?" · Peso real: "+Number(details.actual_weight_kg).toLocaleString("es-AR")+" kg":"";
+          addText(item.product_name_snapshot,8.2,true,"left",0.2);
+          addText(description+weight,7.5,false,"left",0.2);
+          addText("Precio: "+money(item.unit_price_snapshot)+" · "+amount,7.5,false,"left",1.1);
+        });
+        rule();
+        row("Subtotal",money(order.subtotal));
+        if(Number(order.discount_amount)>0) row("Descuento ("+(Number(order.discount_percent)||5)+"%)","-"+money(order.discount_amount));
+        row("Envío",money(order.delivery_fee));
+        addText("TOTAL: "+money(order.total),10,true,"left",1);
+        if(order.notes){rule();addText("Observaciones:",8,true);addText(order.notes,7.5,false,"left",1);}
+        rule();
+        addText("Gracias por tu compra",8,true,"center",3);
+        const pageHeight=Math.max(70,y+3);
+        doc.internal.pageSize.setHeight(pageHeight);
+        ops.forEach(op=>{
+          if(op.type==="rule"){
+            doc.setLineWidth(0.2);doc.setLineDashPattern([1,1],0);doc.line(margin,op.y,58-margin,op.y);doc.setLineDashPattern([],0);
+          } else if(op.type==="image"){
+            try{doc.addImage(op.data,"PNG",op.x,op.y,op.w,op.h);}catch(_){}
+          } else {
+            doc.setFont("helvetica",op.bold?"bold":"normal");doc.setFontSize(op.size);
+            const x=op.align==="center"?29:op.align==="right"?55:margin;
+            doc.text(op.lines,x,op.y,{align:op.align});
+          }
+        });
+        const blob=doc.output("blob");
+        const url=URL.createObjectURL(blob);
+        preview.location.href=url;
+        showMessage($("orderDetailMessage"),"PDF de 58 mm generado. Desde la vista previa del iPhone, compartilo o abrilo con Print-Label.", "ok");
+      } catch(error) {
+        preview.close();
+        showMessage($("orderDetailMessage"),"No se pudo generar el PDF: "+(error.message||"Error desconocido"),"error");
+      } finally {
+        button.disabled=false;button.textContent="📄 Generar PDF 58 mm";
+      }
+    }
     function printOrderTicket() {
       if(!selectedOrder) return;
       const order=selectedOrder, items=selectedOrderItems||[];
@@ -1144,7 +1249,7 @@
       const button=e.target.closest("button[data-order-id]");
       if(button) openOrderDetails(button.dataset.orderId);
     });
-    $("printOrderButton").addEventListener("click",printOrderTicket);
+    $("printOrderButton").addEventListener("click",generateOrderTicketPdf);
     $("saveOrderStatus").addEventListener("click",saveOrderStatus);
     $("editOrderButton").addEventListener("click",openOrderForEditing);
     $("newOrderButton").addEventListener("click",openManualOrder);
