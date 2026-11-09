@@ -830,12 +830,12 @@
             <label>Tipo de entrega *</label>
             <select id="entrega" onchange="actualizarEntrega()">
                 <option value="retiro">Retirar en Santiago del Estero 1047 — Gratis</option>
-                <option value="envio">Envío a domicilio — $1.500</option>
+                <option value="envio">Envío a domicilio — según distancia</option>
             </select>
         </div>
         <div class="form-group" id="campoDomicilio" hidden>
             <label for="domicilio">Domicilio de entrega *</label>
-            <input type="text" id="domicilio" placeholder="Ingresá calle, número, piso y departamento" autocomplete="street-address">
+            <input type="text" id="domicilio" placeholder="Ingresá calle, número, piso y departamento" autocomplete="street-address" oninput="invalidarCotizacionEnvio()" onblur="cotizarEnvio()"><div id="estadoCotizacionEnvio" style="margin-top:6px;font-size:13px;color:#555;">El costo se calcula según el recorrido por calles desde Santiago del Estero 1047.</div>
         </div>
         <div class="form-group">
             <label>Método de pago *</label>
@@ -859,7 +859,7 @@
             </div>
             <div class="res-total" id="fila-envio" hidden>
                 <span>Envío:</span>
-                <span id="res-envio">$ 1.500,00</span>
+                <span id="res-envio">Ingresá tu domicilio</span>
             </div>
             <div class="res-total" style="font-size:13px; color:#F5A623; border-top:1px dashed #F5A623; padding-top:8px; margin-top:8px;">
                 <span>⚠️ Los quesos blandos se cobran al pesar</span>
@@ -929,7 +929,7 @@ function cerrarAviso() {
 }
 
 // ============== DATOS ==============
-const COSTO_ENVIO = 1500;
+const COSTO_ENVIO = 400; // $400 por cada tramo de 500 metros
 
 const PRECIOS = {
     sancor40: 1750, paulina40: 1450, quesera40: 850, quesera150: 3200,
@@ -1186,6 +1186,49 @@ async function validarComercio() {
         boton.textContent = 'Validar comercio';
     }
 }
+let cotizacionEnvio = null;
+let domicilioCotizado = '';
+let cotizandoEnvio = false;
+
+function invalidarCotizacionEnvio() {
+    cotizacionEnvio = null;
+    domicilioCotizado = '';
+    const estado = document.getElementById('estadoCotizacionEnvio');
+    if (estado) estado.textContent = 'Calcularemos el costo al salir del campo de domicilio.';
+    actualizarResumen();
+}
+
+async function cotizarEnvio() {
+    const entrega = document.getElementById('entrega').value;
+    const domicilio = document.getElementById('domicilio').value.trim();
+    const estado = document.getElementById('estadoCotizacionEnvio');
+    const esComercio = comercioValidado && document.getElementById('tipoCliente').value === 'comercio';
+    if (entrega !== 'envio' || esComercio || !domicilio) return;
+    if (cotizacionEnvio !== null && domicilioCotizado === domicilio) return;
+    if (cotizandoEnvio) return;
+    cotizandoEnvio = true;
+    if (estado) estado.textContent = 'Calculando recorrido por calles…';
+    try {
+        const respuesta = await fetch('https://mcldznfvurasijsmjrnp.supabase.co/functions/v1/create-public-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'apikey': 'sb_publishable_vTVzeA7myrdRD1mwFNH8Eg_jWATzNRF' },
+            body: JSON.stringify({ action: 'quote_delivery', delivery_type: 'envio', delivery_address: domicilio })
+        });
+        const resultado = await respuesta.json().catch(() => ({}));
+        if (!respuesta.ok || !resultado.ok) throw new Error(resultado.error || 'No pudimos calcular el envío.');
+        cotizacionEnvio = Number(resultado.delivery_fee);
+        domicilioCotizado = domicilio;
+        if (estado) estado.textContent = `Distancia por calles: ${(resultado.distance_meters / 1000).toFixed(2).replace('.', ',')} km · Envío: ${formatoMoneda(cotizacionEnvio)}`;
+    } catch (error) {
+        cotizacionEnvio = null;
+        domicilioCotizado = '';
+        if (estado) estado.textContent = error.message || 'No se pudo calcular el envío. Revisá el domicilio.';
+    } finally {
+        cotizandoEnvio = false;
+        actualizarResumen();
+    }
+}
+
 function actualizarEntrega() {
     const esEnvio = document.getElementById('entrega').value === 'envio';
     const campoDomicilio = document.getElementById('campoDomicilio');
@@ -1274,8 +1317,11 @@ function actualizarResumen() {
     const filaEnvio = document.getElementById('fila-envio');
     const filaDescuento = document.getElementById('fila-descuento');
     const esEnvio = entrega === 'envio';
-    const costoEnvio = esEnvio && !esComercio ? COSTO_ENVIO : 0;
-    filaEnvio.hidden = costoEnvio === 0;
+    const costoEnvio = esEnvio && !esComercio ? (cotizacionEnvio ?? 0) : 0;
+    filaEnvio.hidden = !esEnvio || esComercio;
+    if (esEnvio && !esComercio && cotizacionEnvio === null) {
+        document.getElementById('res-envio').textContent = 'A calcular';
+    }
     filaDescuento.hidden = !esComercio;
     document.getElementById('res-descuento').textContent = '-' + formatoMoneda(descuento);
     document.getElementById('res-envio').textContent = formatoMoneda(costoEnvio);
@@ -1403,6 +1449,14 @@ async function enviarWhatsApp() {
         document.getElementById('domicilio').focus();
         mostrarAviso('Ingresá tu domicilio para el envío.');
         return;
+    }
+
+    if (entrega === 'envio' && !(comercioValidado && tipoCliente === 'comercio')) {
+        await cotizarEnvio();
+        if (cotizacionEnvio === null || domicilioCotizado !== domicilio) {
+            mostrarAviso('No pudimos calcular el costo del envío. Revisá el domicilio e intentá nuevamente.');
+            return;
+        }
     }
 
     const items = construirItemsPedido();
