@@ -28,11 +28,12 @@ Deno.serve(async (req: Request) => {
       ? body.payment_method : null;
     const items = Array.isArray(body.items) ? body.items : [];
     const isValidationRequest = body.action === "validate_commerce";
+    const isQuoteRequest = body.action === "quote_delivery";
 
-    if (!name || !phone) {
+    if (!isQuoteRequest && (!name || !phone)) {
       return json(400, { error: "Ingresá nombre y teléfono." });
     }
-    if (!isValidationRequest && (!payment || items.length === 0 || items.length > 100)) {
+    if (!isValidationRequest && !isQuoteRequest && (!payment || items.length === 0 || items.length > 100)) {
       return json(400, { error: "Faltan datos obligatorios o el pedido no contiene productos." });
     }
     if (deliveryType === "envio" && !address) {
@@ -66,6 +67,44 @@ Deno.serve(async (req: Request) => {
           ? item.selection_details : {},
       };
     });
+
+    const mapsKey = Deno.env.get("GOOGLE_MAPS_API_KEY");
+    const getDeliveryDistance = async (destination: string): Promise<number> => {
+      if (!mapsKey) throw new Error("Falta configurar GOOGLE_MAPS_API_KEY en Supabase.");
+      const mapsResponse = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": mapsKey,
+          "X-Goog-FieldMask": "routes.distanceMeters",
+        },
+        body: JSON.stringify({
+          origin: { address: "Santiago del Estero 1047, San Lorenzo, Santa Fe, Argentina" },
+          destination: { address: `${destination}, San Lorenzo, Santa Fe, Argentina` },
+          travelMode: "DRIVE",
+          routingPreference: "TRAFFIC_UNAWARE",
+        }),
+      });
+      const mapsData = await mapsResponse.json().catch(() => ({}));
+      if (!mapsResponse.ok) {
+        console.error("Google Routes API:", mapsData);
+        throw new Error("No pudimos ubicar el domicilio o calcular el recorrido. Revisá la dirección.");
+      }
+      const meters = Number(mapsData?.routes?.[0]?.distanceMeters);
+      if (!Number.isFinite(meters) || meters <= 0) {
+        throw new Error("Google Maps no encontró un recorrido válido para ese domicilio.");
+      }
+      return meters;
+    };
+
+    if (isQuoteRequest) {
+      if (deliveryType !== "envio" || !address) {
+        return json(400, { error: "Ingresá el domicilio para calcular el envío." });
+      }
+      const distanceMeters = await getDeliveryDistance(address);
+      const deliveryFee = Math.ceil(distanceMeters / 500) * 400;
+      return json(200, { ok: true, distance_meters: distanceMeters, delivery_fee: deliveryFee });
+    }
 
     const subtotal = cleanItems.reduce((sum, item) => sum + (item.line_total ?? 0), 0);
     const customerAddress = String(body.customer_address ?? "").trim().slice(0, 300);
@@ -114,7 +153,8 @@ Deno.serve(async (req: Request) => {
     }
     const discountPercent = isBusiness ? 5 : 0;
     const discountAmount = Number((subtotal * discountPercent / 100).toFixed(2));
-    const deliveryFee = isBusiness ? 0 : deliveryType === "envio" ? 1500 : 0;
+    const deliveryDistance = deliveryType === "envio" && !isBusiness ? await getDeliveryDistance(address) : 0;
+    const deliveryFee = isBusiness || deliveryType !== "envio" ? 0 : Math.ceil(deliveryDistance / 500) * 400;
     const { data: order, error: orderError } = await db.from("orders").insert({
       customer_id: customerId,
       customer_name: name,
