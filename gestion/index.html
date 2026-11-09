@@ -995,9 +995,9 @@
       if(jsPdfLoaderPromise) return jsPdfLoaderPromise;
       jsPdfLoaderPromise=new Promise((resolve,reject)=>{
         const script=document.createElement("script");
-        script.src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js";
+        script.src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js";
         script.onload=()=>window.jspdf?.jsPDF?resolve(window.jspdf.jsPDF):reject(new Error("No se pudo inicializar el generador de PDF."));
-        script.onerror=()=>reject(new Error("No se pudo cargar el generador de PDF. Revisá tu conexión e intentá nuevamente."));
+        script.onerror=()=>{jsPdfLoaderPromise=null;reject(new Error("No se pudo descargar el generador de PDF desde jsDelivr. Revisá la conexión e intentá nuevamente."));};
         document.head.append(script);
       });
       return jsPdfLoaderPromise;
