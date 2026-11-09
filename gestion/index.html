@@ -1052,7 +1052,7 @@
           const scale=Math.min(30/logoSize.width,18/logoSize.height);
           const logoWidth=logoSize.width*scale, logoHeight=logoSize.height*scale;
           ops.push({type:"image",data:logoData,x:(58-logoWidth)/2,y,w:logoWidth,h:logoHeight});
-          y+=logoHeight+2.5;
+          y+=logoHeight+6;
         }
         addText("LÁCTEOS LA UNIÓN",12,true,"center",0.8);
         addText("Ticket de pedido",9,false,"center",0.5);
@@ -1068,7 +1068,9 @@
         addText("PRODUCTOS",9.5,true,"left",1.2);
         items.forEach(item=>{
           const details=item.selection_details||{},qty=Number(item.quantity)||0;
-          const description=details.selection_label||(qty+" "+(item.unit_label_snapshot||""));
+          const unitLabel=String(item.unit_label_snapshot||"");
+          const displayUnit=qty>1 && unitLabel.toLocaleLowerCase("es-AR")==="unidad"?"unidades":unitLabel;
+          const description=details.selection_label||(qty+" "+displayUnit);
           const amount=item.line_total==null?"Pendiente de pesaje":money(item.line_total);
           const weight=details.actual_weight_kg?" · Peso real: "+Number(details.actual_weight_kg).toLocaleString("es-AR")+" kg":"";
           addText(item.product_name_snapshot,9.5,true,"left",0.5);
