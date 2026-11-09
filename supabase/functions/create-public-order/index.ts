@@ -24,6 +24,11 @@ Deno.serve(async (req: Request) => {
     const phone = String(body.customer_phone ?? "").trim().slice(0, 40);
     const deliveryType = body.delivery_type === "envio" ? "envio" : "retiro";
     const address = String(body.delivery_address ?? "").trim().slice(0, 300);
+    const locality = String(body.delivery_locality ?? "San Lorenzo").trim().slice(0, 80);
+    const normalizedLocality = locality.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    if (deliveryType === "envio" && normalizedLocality !== "san lorenzo") {
+      return json(400, { error: "Por el momento realizamos envíos únicamente dentro de San Lorenzo." });
+    }
     const payment = ["efectivo", "transferencia", "debito"].includes(body.payment_method)
       ? body.payment_method : null;
     const items = Array.isArray(body.items) ? body.items : [];
@@ -69,7 +74,7 @@ Deno.serve(async (req: Request) => {
     });
 
     const mapsKey = Deno.env.get("GOOGLE_MAPS_API_KEY");
-    const getDeliveryDistance = async (destination: string): Promise<number> => {
+    const getDeliveryDistance = async (destination: string, destinationLocality: string): Promise<number> => {
       if (!mapsKey) throw new Error("Falta configurar GOOGLE_MAPS_API_KEY en Supabase.");
       const mapsResponse = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
         method: "POST",
@@ -80,7 +85,7 @@ Deno.serve(async (req: Request) => {
         },
         body: JSON.stringify({
           origin: { address: "Santiago del Estero 1047, San Lorenzo, Santa Fe, Argentina" },
-          destination: { address: `${destination}, San Lorenzo, Santa Fe, Argentina` },
+          destination: { address: `${destination}, ${destinationLocality}, Santa Fe, Argentina` },
           travelMode: "DRIVE",
           routingPreference: "TRAFFIC_UNAWARE",
         }),
@@ -101,7 +106,7 @@ Deno.serve(async (req: Request) => {
       if (deliveryType !== "envio" || !address) {
         return json(400, { error: "Ingresá el domicilio para calcular el envío." });
       }
-      const distanceMeters = await getDeliveryDistance(address);
+      const distanceMeters = await getDeliveryDistance(address, locality);
       const deliveryFee = Math.ceil(distanceMeters / 500) * 400;
       return json(200, { ok: true, distance_meters: distanceMeters, delivery_fee: deliveryFee });
     }
@@ -153,14 +158,14 @@ Deno.serve(async (req: Request) => {
     }
     const discountPercent = isBusiness ? 5 : 0;
     const discountAmount = Number((subtotal * discountPercent / 100).toFixed(2));
-    const deliveryDistance = deliveryType === "envio" && !isBusiness ? await getDeliveryDistance(address) : 0;
+    const deliveryDistance = deliveryType === "envio" && !isBusiness ? await getDeliveryDistance(address, locality) : 0;
     const deliveryFee = isBusiness || deliveryType !== "envio" ? 0 : Math.ceil(deliveryDistance / 500) * 400;
     const { data: order, error: orderError } = await db.from("orders").insert({
       customer_id: customerId,
       customer_name: name,
       customer_phone: phone,
       delivery_type: deliveryType,
-      delivery_address: deliveryType === "envio" ? address : null,
+      delivery_address: deliveryType === "envio" ? `${address}, ${locality}` : null,
       payment_method: payment,
       source: "web",
       status: "pedido_tomado",
