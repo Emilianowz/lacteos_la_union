@@ -614,7 +614,7 @@
       event.preventDefault();if(!editingCustomerId)return;
       const button=$("saveCustomerButton");button.disabled=true;button.textContent="Guardando…";
       try {
-        const payload={name:$("editCustomerName").value.trim(),phone:$("editCustomerPhone").value.trim(),email:$("editCustomerEmail").value.trim()||null,address:$("editCustomerAddress").value.trim()||null,customer_type:$("editCustomerType").value,notes:$("editCustomerNotes").value.trim()||null};
+        const payload={name:$("editCustomerName").value.trim(),phone:$("editCustomerPhone").value.trim(),email:$("editCustomerEmail").value.trim()||null,address:$("editCustomerAddress").value.trim()||null,customer_type:$("editCustomerType").value,notes:$("editCustomerNotes").value.trim()};
         if(!payload.name||!payload.phone)throw new Error("Completá el nombre y el teléfono del cliente.");
         const {data,error}=await db.from("customers").update(payload).eq("id",editingCustomerId).select("id,name,phone,email,address,customer_type,notes").single();
         if(error)throw error;
