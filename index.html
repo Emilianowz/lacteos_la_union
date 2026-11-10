@@ -34,10 +34,10 @@
         .etiqueta-peso { font-size: 12px; font-weight: 500; color: #F5A623; background: rgba(245, 166, 35, 0.15); padding: 2px 8px; border-radius: 12px; }
         
         .contenedor { max-width: 600px; margin: 0 auto; padding: 15px; }
-        /* Finalizar pedido: título destacado y formulario translúcido */
-        #p2 > .header { background: rgba(255,255,255,.58); border-bottom-color: rgba(0,102,179,.16); }
+        /* Finalizar pedido: transparencia limitada al bloque del título */
+        #p2 > .header { width: max-content; max-width: calc(100% - 24px); margin: 14px auto 0; padding: 8px; background: rgba(255,255,255,.58); border: 1px solid rgba(0,102,179,.16); border-radius: 14px; }
         #p2 > .header h1 { display: inline-block; padding: 10px 20px; color: #fff; background: #0066B3; border: 1px solid rgba(0,75,135,.22); border-radius: 10px; box-shadow: 0 2px 7px rgba(0,0,0,.13); }
-        #p2 > .contenedor { margin: 14px auto; padding: 16px; background: rgba(255,255,255,.76); border: 1px solid rgba(0,102,179,.14); border-radius: 14px; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+        #p2 > .contenedor { margin: 0 auto; padding: 15px; background: transparent; border: 0; border-radius: 0; backdrop-filter: none; -webkit-backdrop-filter: none; }
         .buscador-catalogo { margin: 0 0 14px; }
         .buscador-catalogo input { display: block; width: 100%; min-height: 46px; padding: 11px 14px; border: 1px solid #cbd5df; border-radius: 9px; background: #fff; color: #243746; font-size: 16px; box-shadow: 0 2px 7px rgba(0,0,0,.05); }
         .buscador-catalogo input:focus { outline: 2px solid #0066B3; outline-offset: 1px; }
