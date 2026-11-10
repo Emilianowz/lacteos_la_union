@@ -1389,7 +1389,7 @@
     $("productForm").addEventListener("submit",saveProduct);
     document.querySelectorAll("[data-tab]").forEach(btn=>btn.addEventListener("click",()=>{
       document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("active",b===btn));
-      ["dashboard","orders","products"].forEach(t=>$(t+"Tab").classList.toggle("hidden",t!==btn.dataset.tab));
+      ["dashboard","orders","products","customers"].forEach(t=>$(t+"Tab").classList.toggle("hidden",t!==btn.dataset.tab));
     }));
     db.auth.getSession().then(({data})=>{if(data.session)openSession(data.session);});
     if("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
