@@ -144,6 +144,7 @@
         <button type="button" class="active" data-tab="dashboard">Resumen</button>
         <button type="button" data-tab="orders">Pedidos</button>
         <button type="button" data-tab="products">Catálogo</button>
+        <button type="button" data-tab="customers">Clientes</button>
       </nav>
       <section id="dashboardTab" class="panel">
         <h2>Actividad reciente</h2><p class="sub">Los datos se consultan directamente desde la base de datos.</p>
@@ -237,6 +238,26 @@
             <button id="saveOrderStatus" type="button">Guardar estado</button>
           </div>
           <div id="orderDetailMessage" class="message hidden" role="status"></div>
+        </section>
+      </section>
+      <section id="customersTab" class="panel hidden">
+        <div class="row"><div><h2>Clientes</h2><p class="sub" style="margin:4px 0 0">Consultá y actualizá los datos de tus clientes.</p></div></div>
+        <label for="customerSearch">Buscar cliente</label><input id="customerSearch" type="search" placeholder="Nombre, teléfono o domicilio">
+        <div id="customersList" class="list"></div>
+        <section id="customerEditPanel" class="order-detail hidden">
+          <div class="row"><h3 id="customerEditTitle">Editar cliente</h3><button id="cancelCustomerEdit" class="secondary edit-button" type="button">Cancelar</button></div>
+          <form id="customerEditForm">
+            <label for="editCustomerName">Nombre / razón social</label><input id="editCustomerName" maxlength="180" required>
+            <div class="manual-row">
+              <div><label for="editCustomerPhone">Teléfono</label><input id="editCustomerPhone" maxlength="40" required></div>
+              <div><label for="editCustomerEmail">Correo electrónico</label><input id="editCustomerEmail" type="email" maxlength="180"></div>
+              <div class="wide"><label for="editCustomerAddress">Domicilio</label><input id="editCustomerAddress" maxlength="300"></div>
+              <div><label for="editCustomerType">Tipo de cliente</label><select id="editCustomerType"><option value="particular">Particular</option><option value="comercio">Comercio</option></select></div>
+            </div>
+            <label for="editCustomerNotes">Observaciones (opcional)</label><textarea id="editCustomerNotes" maxlength="1000"></textarea>
+            <div id="customerEditMessage" class="message hidden" role="status"></div>
+            <div class="form-actions"><button id="saveCustomerButton" type="submit">Guardar cambios</button></div>
+          </form>
         </section>
       </section>
       <section id="productsTab" class="panel hidden">
@@ -554,7 +575,58 @@
       }
     }
 
+    $("customerSearch").addEventListener("input",renderCustomers);
+    $("customersList").addEventListener("click",e=>{const b=e.target.closest("button[data-customer-id]");if(b)openCustomerEditor(b.dataset.customerId);});
+    $("customerEditForm").addEventListener("submit",saveCustomerChanges);
+    $("cancelCustomerEdit").addEventListener("click",()=>{$("customerEditPanel").classList.add("hidden");editingCustomerId=null;});
     $("productSearch").addEventListener("input", renderProducts);
+    let editingCustomerId=null;
+    function renderCustomers() {
+      const target=$("customersList");target.innerHTML="";
+      const q=$("customerSearch").value.trim().toLocaleLowerCase("es-AR");
+      const rows=customersCache.filter(c=>[c.name,c.phone,c.email,c.address].join(" ").toLocaleLowerCase("es-AR").includes(q));
+      if(!rows.length){target.innerHTML='<p class="muted">No se encontraron clientes.</p>';return;}
+      rows.forEach(c=>{
+        const el=document.createElement("div");el.className="item";
+        const main=document.createElement("div");main.className="item-main";
+        const name=document.createElement("strong");name.textContent=c.name||"Sin nombre";
+        const detail=document.createElement("small");detail.textContent=(c.customer_type==="comercio"?"Comercio":"Particular")+" · "+(c.phone||"Sin teléfono")+" · "+(c.address||"Sin domicilio");
+        main.append(name,detail);
+        const edit=document.createElement("button");edit.type="button";edit.className="secondary edit-button";edit.textContent="Editar";edit.dataset.customerId=c.id;
+        el.append(main,edit);target.append(el);
+      });
+    }
+    function openCustomerEditor(id) {
+      const c=customersCache.find(x=>x.id===id);if(!c)return;
+      editingCustomerId=c.id;
+      $("customerEditTitle").textContent="Editar: "+c.name;
+      $("editCustomerName").value=c.name||"";
+      $("editCustomerPhone").value=c.phone||"";
+      $("editCustomerEmail").value=c.email||"";
+      $("editCustomerAddress").value=c.address||"";
+      $("editCustomerType").value=c.customer_type||"particular";
+      $("editCustomerNotes").value=c.notes||"";
+      $("customerEditMessage").className="message hidden";
+      $("customerEditPanel").classList.remove("hidden");
+      $("customerEditPanel").scrollIntoView({behavior:"smooth",block:"start"});
+    }
+    async function saveCustomerChanges(event) {
+      event.preventDefault();if(!editingCustomerId)return;
+      const button=$("saveCustomerButton");button.disabled=true;button.textContent="Guardando…";
+      try {
+        const payload={name:$("editCustomerName").value.trim(),phone:$("editCustomerPhone").value.trim(),email:$("editCustomerEmail").value.trim()||null,address:$("editCustomerAddress").value.trim()||null,customer_type:$("editCustomerType").value,notes:$("editCustomerNotes").value.trim()||null};
+        if(!payload.name||!payload.phone)throw new Error("Completá el nombre y el teléfono del cliente.");
+        const {data,error}=await db.from("customers").update(payload).eq("id",editingCustomerId).select("id,name,phone,email,address,customer_type,notes").single();
+        if(error)throw error;
+        const index=customersCache.findIndex(c=>c.id===editingCustomerId);
+        if(index>=0)customersCache[index]=data;
+        fillManualOrderOptions();renderCustomers();
+        $("customerEditTitle").textContent="Editar: "+data.name;
+        showMessage($("customerEditMessage"),"Datos del cliente actualizados correctamente. Los pedidos anteriores conservan los datos que tenían registrados.","ok");
+      } catch(error) {
+        showMessage($("customerEditMessage"),"No se pudieron guardar los cambios: "+(error.message||"Error desconocido"),"error");
+      } finally {button.disabled=false;button.textContent="Guardar cambios";}
+    }
     async function loadData() {
       showMessage($("statusMessage"),"Conectado. Consultando pedidos y catálogo…");
       const [ordersRes,productsRes,categoriesRes,customersRes] = await Promise.all([
@@ -581,6 +653,7 @@
       renderOrders($("recentOrders"),orders.slice(0,5));
       renderFilteredOrders();
       renderProducts();
+      renderCustomers();
       $("statusMessage").className="message hidden";
     }
     function fillManualOrderOptions() {
