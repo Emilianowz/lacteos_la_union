@@ -261,7 +261,7 @@
         </section>
       </section>
       <section id="productsTab" class="panel hidden">
-        <div class="row"><div><h2>Catálogo</h2><p class="sub" style="margin:4px 0 0">Administrá nombres, precios, categorías y disponibilidad.</p></div><button id="newProductButton" type="button">+ Agregar</button></div>
+        <div class="row" style="flex-wrap:wrap"><div><h2>Catálogo</h2><p class="sub" style="margin:4px 0 0">Administrá nombres, precios, categorías y disponibilidad.</p></div><div class="form-actions" style="margin:0"><button id="exportProductsButton" class="secondary" type="button">↓ Exportar catálogo</button><button id="newProductButton" type="button">+ Agregar</button></div></div>
         <div id="productFormPanel" class="panel hidden" style="margin:16px 0 8px;background:#f8fafc">
           <h2 id="productFormTitle">Nuevo producto</h2>
           <form id="productForm">
@@ -509,6 +509,63 @@
         row.append(number,info,actions);stops.append(row);
       });
     }
+    function exportProductsCsv() {
+      if (!productsCache.length) {
+        showMessage($("statusMessage"),"No hay productos cargados para exportar.","error");
+        return;
+      }
+      const columns = [
+        ["id","ID"],
+        ["name","Nombre"],
+        ["category","Categoría"],
+        ["description","Descripción"],
+        ["sale_mode","Modalidad de venta"],
+        ["unit_label","Unidad / presentación"],
+        ["price","Precio por unidad"],
+        ["price_per_kg","Precio por kg"],
+        ["price_per_100g","Precio cada 100 g"],
+        ["active","Activo"],
+        ["selection_config","Configuración de compra (JSON)"]
+      ];
+      const escapeCsv = value => {
+        if (value === null || value === undefined) return '""';
+        const textValue = typeof value === "object" ? JSON.stringify(value) : String(value);
+        return '"' + textValue.replace(/"/g,'""') + '"';
+      };
+      const numberForCsv = value => value === null || value === undefined ? "" :
+        Number(value).toLocaleString("es-AR",{useGrouping:false,maximumFractionDigits:2});
+      const rows = productsCache.map(product => {
+        const category = categoriesCache.find(item => item.id === product.category_id)?.name || "Sin categoría";
+        return [
+          product.id,
+          product.name,
+          category,
+          product.description || "",
+          product.sale_mode || "",
+          product.unit_label || "",
+          numberForCsv(product.price),
+          numberForCsv(product.price_per_kg),
+          numberForCsv(product.price_per_100g),
+          product.active ? "Sí" : "No",
+          product.selection_config || {}
+        ];
+      });
+      const csv = "\\uFEFF" + [columns.map(column => escapeCsv(column[1])).join(";"),
+        ...rows.map(row => row.map(escapeCsv).join(";"))].join("\\r\\n");
+      const now = new Date();
+      const fileDate = [now.getFullYear(),String(now.getMonth()+1).padStart(2,"0"),String(now.getDate()).padStart(2,"0")].join("-");
+      const blob = new Blob([csv],{type:"text/csv;charset=utf-8;"});
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "catalogo-lacteos-la-union-" + fileDate + ".csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+      showMessage($("statusMessage"),"Catálogo exportado: "+productsCache.length+" productos (activos e inactivos).","ok");
+    }
+
     function renderProducts() {
       const target = $("productsList");
       target.innerHTML = "";
@@ -1383,6 +1440,7 @@
       selectedOrder=null; $("orderDetailPanel").classList.add("hidden");
     });
     $("logout").addEventListener("click",async()=>{await db.auth.signOut();location.reload();});
+    $("exportProductsButton").addEventListener("click",exportProductsCsv);
     $("newProductButton").addEventListener("click",()=>openProductForm(null));
     $("cancelProductButton").addEventListener("click",closeProductForm);
     $("productMode").addEventListener("change",updatePriceFields);
