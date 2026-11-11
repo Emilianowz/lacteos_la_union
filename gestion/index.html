@@ -550,8 +550,8 @@
           product.selection_config || {}
         ];
       });
-      const csv = "\\uFEFF" + [columns.map(column => escapeCsv(column[1])).join(";"),
-        ...rows.map(row => row.map(escapeCsv).join(";"))].join("\\r\\n");
+      const csv = "\uFEFF" + [columns.map(column => escapeCsv(column[1])).join(";"),
+        ...rows.map(row => row.map(escapeCsv).join(";"))].join("\r\n");
       const now = new Date();
       const fileDate = [now.getFullYear(),String(now.getMonth()+1).padStart(2,"0"),String(now.getDate()).padStart(2,"0")].join("-");
       const blob = new Blob([csv],{type:"text/csv;charset=utf-8;"});
