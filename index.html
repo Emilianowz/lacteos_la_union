@@ -286,13 +286,13 @@
 
             <div class="producto">
                 <div class="prod-nombre">POR SALUT TREMBLAY PORCIONADO (400 g aprox.) x unidad</div>
-                <div class="prod-precio">$ 9.250,00</div>
-                <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarCant('portsalut_porcionado',1)">+</button><span class="cant-num" id="cant_portsalut_porcionado">0</span><button class="btn-cant" onclick="cambiarCant('portsalut_porcionado',-1)">−</button></div></div>
+                <div class="prod-precio">$ 9.346,56 / kg — Se cobra al pesar</div>
+                <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarCantidadPeso('portsalut_porcionado',1)">+</button><span class="cant-num" id="cant_portsalut_porcionado">0</span><button class="btn-cant" onclick="cambiarCantidadPeso('portsalut_porcionado',-1)">−</button></div></div>
             </div>
             <div class="producto">
                 <div class="prod-nombre">POR SALUT SIN SAL TREMBLAY PORCIONADO (400 g aprox.) x unidad</div>
-                <div class="prod-precio">$ 9.900,00</div>
-                <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarCant('portsalut_ss_porcionado',1)">+</button><span class="cant-num" id="cant_portsalut_ss_porcionado">0</span><button class="btn-cant" onclick="cambiarCant('portsalut_ss_porcionado',-1)">−</button></div></div>
+                <div class="prod-precio">$ 9.986,23 / kg — Se cobra al pesar</div>
+                <div class="fila-inferior"><div class="contador"><button class="btn-cant" onclick="cambiarCantidadPeso('portsalut_ss_porcionado',1)">+</button><span class="cant-num" id="cant_portsalut_ss_porcionado">0</span><button class="btn-cant" onclick="cambiarCantidadPeso('portsalut_ss_porcionado',-1)">−</button></div></div>
             </div>
             <div class="producto">
                 <div class="prod-nombre">PASTA AZUL LA QUESERA POUCH 4 kg x unidad</div>
@@ -386,6 +386,17 @@
                 <p class="nota-peso" style="margin-top:5px;">Elegí UNA sola opción — valor orientativo</p>
                 <div class="fila-inferior" style="margin-top:5px; flex-wrap:wrap; gap:15px;"><div class="selector-grupo"><label>Por monto estimado ($)</label><select id="sel_holanda_verona_monto" onchange="seleccionarPorcion('holanda_verona', 'monto', this.value)"><option value="0">— Elegí —</option><option value="4000">$4.000</option><option value="8000">$8.000</option><option value="12000">$12.000</option><option value="20000">$20.000</option><option value="28000">$28.000</option><option value="36000">$36.000</option><option value="54000">$54.000</option><option value="70000">$70.000</option></select></div><div class="selector-grupo"><label>Por peso estimado</label><select id="sel_holanda_verona_grs" onchange="seleccionarPorcion('holanda_verona', 'peso', this.value)"><option value="0">— Elegí —</option><option value="500">500 gr</option><option value="1000">1 kg</option><option value="1500">1,5 kg</option><option value="2000">2 kg</option><option value="2500">2,5 kg</option><option value="3000">3 kg</option><option value="3500">3,5 kg</option><option value="4000">4 kg</option></select></div><div class="selector-grupo"><label>Por horma</label><select id="sel_holanda_verona_horma" onchange="seleccionarPorcion('holanda_verona', 'horma', this.value)"><option value="0">— Elegí —</option><option value="1/4">1/4 de horma</option><option value="1/2">1/2 horma</option><option value="3/4">3/4 de horma</option><option value="1">1 horma</option></select></div></div>
 <div class="seleccionado-texto" id="sel_holanda_verona_texto"></div>
+            </div>
+            <div class="producto">
+                <div class="prod-nombre">PROVOLONE LA QUESERA x kg</div>
+                <div class="prod-precio">$ 29.050,00 / kg — Se cobra al pesar</div>
+                <p class="nota-peso" style="margin-top:5px;">Elegí UNA sola opción — valor orientativo</p>
+                <div class="fila-inferior" style="margin-top:5px; flex-wrap:wrap; gap:15px;">
+                    <div class="selector-grupo"><label>Por monto estimado ($)</label><select id="sel_provolone_quesera_monto" onchange="seleccionarPorcion('provolone_quesera', 'monto', this.value)"><option value="0">— Elegí —</option><option value="5000">$5.000</option><option value="10000">$10.000</option><option value="15000">$15.000</option><option value="20000">$20.000</option><option value="30000">$30.000</option><option value="40000">$40.000</option></select></div>
+                    <div class="selector-grupo"><label>Por peso estimado</label><select id="sel_provolone_quesera_grs" onchange="seleccionarPorcion('provolone_quesera', 'peso', this.value)"><option value="0">— Elegí —</option><option value="250">250 gr</option><option value="500">500 gr</option><option value="750">750 gr</option><option value="1000">1 kg</option><option value="1500">1,5 kg</option><option value="2000">2 kg</option></select></div>
+                    <div class="selector-grupo"><label>Por pieza</label><select id="sel_provolone_quesera_horma" onchange="seleccionarPorcion('provolone_quesera', 'horma', this.value)"><option value="0">— Elegí —</option><option value="1/4">1/4 de pieza</option><option value="1/2">1/2 pieza</option><option value="3/4">3/4 de pieza</option><option value="1">1 pieza</option></select></div>
+                </div>
+                <div class="seleccionado-texto" id="sel_provolone_quesera_texto"></div>
             </div>
             <div class="producto">
                 <div class="prod-nombre">ROMANITO S/P LA QUESERA (5 kg aprox.) x kg</div>
@@ -1019,7 +1030,7 @@ const SUPABASE_KEY_PUBLICA = 'sb_publishable_vTVzeA7myrdRD1mwFNH8Eg_jWATzNRF';
 
 const cantidades = {};
 const seleccionesPeso = {};
-const cantidadesPeso = { muzz_cilindro: 0, salamin_pg_moriconi: 0, salamin_pf_moriconi: 0, chorizo_moriconi: 0 };
+const cantidadesPeso = { muzz_cilindro: 0, salamin_pg_moriconi: 0, salamin_pf_moriconi: 0, chorizo_moriconi: 0, portsalut_porcionado: 0, portsalut_ss_porcionado: 0 };
 const seleccionesPorcion = {};
 const seleccionesFetas = {};
 let quesoAzul = null;
