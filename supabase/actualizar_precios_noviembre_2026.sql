@@ -156,5 +156,5 @@ where id in (
   '59407572-4e86-4cbe-bedd-f9451207804d'
 );
 
--- Si las comprobaciones son correctas, ejecutar COMMIT; si no, ejecutar ROLLBACK;
--- COMMIT;
+-- La transacción se confirma al finalizar correctamente. Ante cualquier inconsistencia, el bloque DO aborta y revierte todo.
+commit;
