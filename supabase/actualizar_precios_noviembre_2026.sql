@@ -90,6 +90,14 @@ begin
   get diagnostics changed = row_count;
   if changed <> 1 then raise exception 'No se pudo convertir Por Salut porcionado sin sal a pieza pesable.'; end if;
 
+  -- Quesos crema Tremblay sin stock: dos ya están inactivos; ocultar también el pouch que figura activo en el CSV.
+  update public.products
+     set active = false, updated_at = now()
+   where id = '965d7837-8992-4235-a752-d80232ea55d8'
+     and active = true and price = 24500;
+  get diagnostics changed = row_count;
+  if changed <> 1 then raise exception 'No se pudo dejar inactivo el Queso Crema Tremblay Pouch sin stock.'; end if;
+
   -- Provolone: nueva ficha en la categoría existente Quesos Por Porcion.
   if not exists (select 1 from public.products where sku = 'quesos-porcion_provolone_quesera') then
     insert into public.products
