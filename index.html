@@ -394,7 +394,7 @@
                 <div class="fila-inferior" style="margin-top:5px; flex-wrap:wrap; gap:15px;">
                     <div class="selector-grupo"><label>Por monto estimado ($)</label><select id="sel_provolone_quesera_monto" onchange="seleccionarPorcion('provolone_quesera', 'monto', this.value)"><option value="0">— Elegí —</option><option value="5000">$5.000</option><option value="10000">$10.000</option><option value="15000">$15.000</option><option value="20000">$20.000</option><option value="30000">$30.000</option><option value="40000">$40.000</option></select></div>
                     <div class="selector-grupo"><label>Por peso estimado</label><select id="sel_provolone_quesera_grs" onchange="seleccionarPorcion('provolone_quesera', 'peso', this.value)"><option value="0">— Elegí —</option><option value="250">250 gr</option><option value="500">500 gr</option><option value="750">750 gr</option><option value="1000">1 kg</option><option value="1500">1,5 kg</option><option value="2000">2 kg</option></select></div>
-                    <div class="selector-grupo"><label>Por pieza</label><select id="sel_provolone_quesera_horma" onchange="seleccionarPorcion('provolone_quesera', 'horma', this.value)"><option value="0">— Elegí —</option><option value="1/4">1/4 de pieza</option><option value="1/2">1/2 pieza</option><option value="3/4">3/4 de pieza</option><option value="1">1 pieza</option></select></div>
+                    <div class="selector-grupo"><label>Por unidad</label><select id="sel_provolone_quesera_horma" onchange="seleccionarPorcion('provolone_quesera', 'horma', this.value)"><option value="0">— Elegí —</option><option value="1/4">1/4 de unidad</option><option value="1/2">1/2 unidad</option><option value="3/4">3/4 de unidad</option><option value="1">1 unidad</option></select></div>
                 </div>
                 <div class="seleccionado-texto" id="sel_provolone_quesera_texto"></div>
             </div>
@@ -1294,7 +1294,7 @@ function actualizarResumen() {
             if (cantidadesPeso[clave] > 0) {
                 const nombresPeso = { muzz_cilindro: 'MUZZARELLA CILINDRO (5kg completo)', salamin_pg_moriconi: 'SALAMÍN P/G MORICONI', salamin_pf_moriconi: 'SALAMÍN P/F MORICONI', chorizo_moriconi: 'CHORIZO MORICONI' };
                 const div = document.createElement('div'); div.className = 'res-item peso';
-                div.innerHTML = `<span>${PRODUCTOS_CATALOGO[clave]?.name || nombresPeso[clave] || clave}</span><span>${cantidadesPeso[clave]}x pieza completa · A cobrar al pesar</span>`; lista.appendChild(div);
+                div.innerHTML = `<span>${PRODUCTOS_CATALOGO[clave]?.name || nombresPeso[clave] || clave}</span><span>${cantidadesPeso[clave]}x ${['portsalut_porcionado', 'portsalut_ss_porcionado'].includes(clave) ? 'unidad' : 'pieza'} completa · A cobrar al pesar</span>`; lista.appendChild(div);
             }
         }
         
@@ -1388,7 +1388,7 @@ function construirItemsPedido() {
             product_id: PRODUCTOS_CATALOGO[clave]?.id || null,
             product_name_snapshot: item.nombre,
             sale_mode_snapshot: 'weight',
-            unit_label_snapshot: PRODUCTOS_CATALOGO[clave]?.unit_label || 'pieza',
+            unit_label_snapshot: ['portsalut_porcionado', 'portsalut_ss_porcionado'].includes(clave) ? 'unidad' : (PRODUCTOS_CATALOGO[clave]?.unit_label || 'pieza'),
             quantity: 1,
             unit_price_snapshot: null,
             line_total: null,
@@ -1407,11 +1407,11 @@ function construirItemsPedido() {
             product_id: PRODUCTOS_CATALOGO[clave]?.id || null,
             product_name_snapshot: PRODUCTOS_CATALOGO[clave]?.name || nombresPeso[clave] || clave,
             sale_mode_snapshot: 'weight',
-            unit_label_snapshot: PRODUCTOS_CATALOGO[clave]?.unit_label || 'pieza',
+            unit_label_snapshot: ['portsalut_porcionado', 'portsalut_ss_porcionado'].includes(clave) ? 'unidad' : (PRODUCTOS_CATALOGO[clave]?.unit_label || 'pieza'),
             quantity: cantidad,
             unit_price_snapshot: null,
             line_total: null,
-            selection_details: { selection_label: 'Pieza completa', pending_weighing: true }
+            selection_details: { selection_label: ['portsalut_porcionado', 'portsalut_ss_porcionado'].includes(clave) ? 'Unidad completa' : 'Pieza completa', pending_weighing: true }
         });
     }
     const nombresPorcion = {
