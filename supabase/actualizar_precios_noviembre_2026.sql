@@ -1,6 +1,6 @@
 -- Lácteos La Unión — actualización de precios noviembre 2026
 -- Fuente: lista_precios_publico(3).pdf y exportación de catálogo 2026-11-11.csv
--- No modifica pedidos históricos, categorías, ni el estado activo/inactivo de productos.
+-- No modifica pedidos históricos ni crea categorías. Conserva los estados actuales salvo el queso crema Tremblay pouch sin stock, que se desactiva.
 -- Convierte los dos Por Salut porcionados a piezas pesables (precio por kg).
 -- Agrega Provolone La Quesera a la categoría existente Quesos Por Porcion.
 -- Ejecutar desde Supabase SQL Editor. Si algún precio anterior no coincide, aborta todo.
