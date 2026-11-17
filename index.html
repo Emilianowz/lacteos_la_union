@@ -1563,7 +1563,7 @@ async function enviarWhatsApp() {
         lineas.push('');
         lineas.push('Gracias por tu pedido. ¡Lácteos La Unión!');
 
-        const mensaje = encodeURIComponent(lineas.join('\\n'));
+        const mensaje = encodeURIComponent(lineas.join('\n'));
         const url = 'https://wa.me/543412663345?text=' + mensaje;
         if (ventanaWhatsApp) ventanaWhatsApp.location.href = url;
         else window.location.href = url;
