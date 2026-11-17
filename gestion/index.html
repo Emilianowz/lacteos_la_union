@@ -338,6 +338,7 @@
     let manualCart = [];
     let editingOrderId = null;
     let editingOrderItemIds = [];
+    let editingGuestCustomer = null;
     let routeOrderIds = [];
     const DELIVERY_FEE_PARTICULAR = 1500;
 
@@ -731,6 +732,7 @@
       productSelect.value=selectedProduct;
     }
     function selectedManualCustomer() {
+      if($("manualCustomerSelect").value === "__guest_order__") return editingGuestCustomer;
       return customersCache.find(c=>c.id===$("manualCustomerSelect").value)||null;
     }
     function updateManualCustomerFields() {
@@ -755,10 +757,11 @@
       return new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:2}).format(Number(n)||0);
     }
     function openManualOrder() {
-      editingOrderId=null;editingOrderItemIds=[];
+      editingOrderId=null;editingOrderItemIds=[];editingGuestCustomer=null;
       $("manualOrderTitle").textContent="Nuevo pedido manual";$("manualSaveOrder").textContent="Guardar pedido";
       $("manualOrderForm").reset();manualCart=[];
       $("manualNewCustomerPanel").classList.add("hidden");
+      $("manualNewCustomerButton").classList.remove("hidden");
       $("manualCustomerSelect").disabled=false;
       $("manualDeliveryType").disabled=false;
       $("manualProductControls").innerHTML="";
@@ -954,7 +957,7 @@
         const discountAmount=Number((subtotal*discountPercent/100).toFixed(2));
         const deliveryFee=delivery==="envio"&&!isBusiness?DELIVERY_FEE_PARTICULAR:0;
         const orderPayload={
-          customer_id:customer.id,customer_name:customer.name,customer_phone:customer.phone,customer_email:customer.email||null,
+          customer_id:customer.id||null,customer_name:customer.name,customer_phone:customer.phone,customer_email:customer.email||null,
           delivery_type:delivery,delivery_address:delivery==="envio"?address:null,payment_method:$("manualPayment").value,
           subtotal,discount_percent:discountPercent,discount_amount:discountAmount,delivery_fee:deliveryFee,
           total:subtotal-discountAmount+deliveryFee,notes:$("manualOrderNotes").value.trim()
@@ -1016,11 +1019,19 @@
       $("manualCustomerSelect").disabled=false;
       fillManualOrderOptions();
       $("manualCustomerSelect").value=order.customer_id||"";
-      if(!$("manualCustomerSelect").value){
-        editingOrderId=null;editingOrderItemIds=[];
-        showMessage($("orderDetailMessage"),"No se encontró el cliente asociado a este pedido en la lista de clientes. No se hicieron cambios.","error");return;
+      if(!order.customer_id || !$("manualCustomerSelect").value){
+        editingGuestCustomer={id:null,name:order.customer_name||"Cliente sin registrar",phone:order.customer_phone||"",email:order.customer_email||null,address:order.delivery_address||null,customer_type:"particular",notes:""};
+        const guestOption=document.createElement("option");guestOption.value="__guest_order__";
+        guestOption.textContent=editingGuestCustomer.name+" · Particular · "+editingGuestCustomer.phone+" (sin registrar)";
+        $("manualCustomerSelect").append(guestOption);
+        $("manualCustomerSelect").value="__guest_order__";
+        $("manualNewCustomerButton").classList.add("hidden");
+        $("manualExistingCustomerInfo").textContent="Cliente particular sin registrar. Se conservarán los datos originales del pedido.";
+      } else {
+        editingGuestCustomer=null;
+        $("manualNewCustomerButton").classList.remove("hidden");
+        updateManualCustomerFields();
       }
-      updateManualCustomerFields();
       $("manualDeliveryType").value=order.delivery_type||"envio";
       $("manualDeliveryType").disabled=selectedManualCustomer()?.customer_type==="comercio";
       $("manualPayment").value=order.payment_method||"efectivo";
