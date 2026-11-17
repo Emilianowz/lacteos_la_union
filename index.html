@@ -1512,7 +1512,58 @@ async function enviarWhatsApp() {
             throw new Error(resultado.error || 'No se pudo guardar el pedido.');
         }
 
-        const mensaje = '🔔 *¡NUEVO PEDIDO - LÁCTEOS LA UNIÓN!*%0A%0AHay un nuevo pedido registrado en la tienda web.%0AIngresá a la app de gestión para consultar los detalles.';
+        const subtotal = calcularTotal();
+        const esComercio = comercioValidado && tipoCliente === 'comercio';
+        const descuento = esComercio ? Number((subtotal * 0.05).toFixed(2)) : 0;
+        const costoEnvio = entrega === 'envio' && !esComercio ? (cotizacionEnvio ?? 0) : 0;
+        const totalFinal = subtotal - descuento + costoEnvio;
+        const pagoTexto = pago === 'efectivo' ? 'Efectivo' : pago === 'transferencia' ? 'Transferencia' : 'Débito';
+
+        const lineas = [
+            '🧀 *PEDIDO - LÁCTEOS LA UNIÓN*',
+            '',
+            '*DATOS DEL CLIENTE*',
+            'Nombre: ' + nombre,
+            'Teléfono: ' + telefono,
+            'Tipo de cliente: ' + (esComercio ? 'Comercio' : 'Particular'),
+            '',
+            '*ENTREGA*',
+            entrega === 'envio'
+                ? 'Envío a domicilio: ' + domicilio + ', ' + document.getElementById('localidadEntrega').value
+                : 'Retiro en Santiago del Estero 1047',
+            '*Forma de pago:* ' + pagoTexto,
+            '',
+            '*DETALLE DEL PEDIDO*'
+        ];
+
+        items.forEach(item => {
+            const cantidad = Number(item.quantity) || 0;
+            const detalles = item.selection_details || {};
+            if (detalles.pending_weighing) {
+                const unidad = item.unit_label_snapshot === 'unidad' ? 'unidad' : item.unit_label_snapshot;
+                const cantidadTexto = cantidad > 1 ? cantidad + ' ' + unidad + '(es)' : (item.sale_mode_snapshot === 'portion' ? '' : '1 ' + unidad + ' — ');
+                const seleccion = detalles.selection_label ? ' — ' + detalles.selection_label : '';
+                lineas.push('• ' + (cantidadTexto && item.sale_mode_snapshot !== 'portion' ? cantidadTexto : '') + item.product_name_snapshot + seleccion + ' (a pesar)');
+            } else if (item.sale_mode_snapshot === 'sliced') {
+                lineas.push('• ' + item.product_name_snapshot + ' — ' + detalles.grams + ' g — ' + formatoMoneda(item.line_total));
+            } else {
+                lineas.push('• ' + cantidad + ' x ' + item.product_name_snapshot + ' — ' + formatoMoneda(item.line_total));
+            }
+        });
+
+        lineas.push('');
+        lineas.push('*Subtotal de productos:* ' + formatoMoneda(subtotal));
+        if (esComercio) lineas.push('*Descuento comercio (5%):* -' + formatoMoneda(descuento));
+        if (entrega === 'envio') lineas.push('*Envío:* ' + (esComercio ? 'Sin cargo' : formatoMoneda(costoEnvio)));
+        lineas.push('*TOTAL ESTIMADO:* ' + formatoMoneda(totalFinal));
+        if (items.some(item => item.selection_details?.pending_weighing)) {
+            lineas.push('');
+            lineas.push('⚠️ Los productos indicados “a pesar” se cobran según su peso final. Su importe no está incluido en el total estimado.');
+        }
+        lineas.push('');
+        lineas.push('Gracias por tu pedido. ¡Lácteos La Unión!');
+
+        const mensaje = encodeURIComponent(lineas.join('\\n'));
         const url = 'https://wa.me/543412663345?text=' + mensaje;
         if (ventanaWhatsApp) ventanaWhatsApp.location.href = url;
         else window.location.href = url;
