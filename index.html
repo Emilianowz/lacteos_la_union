@@ -1686,6 +1686,12 @@ function actualizarTarjetaDinamica(producto, categoria) {
     let estado = productosDinamicos[id];
     let tarjeta = document.querySelector('[data-dynamic-product-id="' + id + '"]');
     if (!estado) estado = productosDinamicos[id] = { quantity: 0, selection: '', kg: '' };
+    const firmaConfiguracion = JSON.stringify({ sale_mode: producto.sale_mode, unit_label: producto.unit_label, selection_config: producto.selection_config || {} });
+    if (tarjeta && tarjeta.dataset.configSignature !== firmaConfiguracion) {
+        tarjeta.remove();
+        tarjeta = null;
+        estado.quantity = 0; estado.selection = ''; estado.kg = '';
+    }
     estado.product = producto;
     if (!tarjeta) {
         tarjeta = document.createElement('div');
@@ -1695,6 +1701,7 @@ function actualizarTarjetaDinamica(producto, categoria) {
         const precio = document.createElement('div'); precio.className = 'prod-precio';
         const fila = document.createElement('div'); fila.className = 'fila-inferior';
         tarjeta.append(nombre, precio, fila);
+        tarjeta.dataset.configSignature = firmaConfiguracion;
         const config = producto.selection_config || {};
         const selectors = Array.isArray(config.selectors) ? config.selectors : [];
         const modo = producto.sale_mode;
