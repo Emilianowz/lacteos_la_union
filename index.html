@@ -1666,7 +1666,8 @@ function obtenerSeccionCategoria(categoria) {
         document.querySelector('.contenedor')?.appendChild(seccion);
     }
     const menu = document.querySelector('.categorias');
-    if (menu && !menu.querySelector('[data-category-target="' + id + '"]')) {
+    const yaExisteBoton = menu && Array.from(menu.querySelectorAll('.cat-btn')).some(b => normalizarCategoriaCatalogo(b.textContent) === normalizada);
+    if (menu && !yaExisteBoton) {
         const boton = document.createElement('button');
         boton.type = 'button';
         boton.className = 'cat-btn';
