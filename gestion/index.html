@@ -269,7 +269,7 @@
             <div class="form-grid">
               <div class="wide"><label for="productName">Nombre del producto</label><input id="productName" maxlength="180" required></div>
               <div><label for="productCategory">Categoría</label><select id="productCategory" style="width:100%;padding:13px 12px;border:1px solid #cbd6e0;border-radius:10px;background:#fff;font:inherit" required></select></div>
-              <div><label for="productMode">Modalidad de venta</label><select id="productMode" style="width:100%;padding:13px 12px;border:1px solid #cbd6e0;border-radius:10px;background:#fff;font:inherit"><option value="unit">Por unidad</option><option value="weight">Por peso</option><option value="portion">Por porción</option><option value="sliced">Cortado en fetas</option></select></div>
+              <div><label for="productMode">Modalidad de venta</label><select id="productMode" style="width:100%;padding:13px 12px;border:1px solid #cbd6e0;border-radius:10px;background:#fff;font:inherit"><option value="unit">Por unidad</option><option value="weight">Por peso</option><option value="weight_piece">Por unidad con peso variable</option><option value="portion">Por porción</option><option value="sliced">Cortado en fetas</option></select></div>
               <div><label for="productUnit">Unidad / presentación</label><input id="productUnit" maxlength="40" placeholder="unidad, horma, barra, pieza…"></div>
               <div id="unitPriceField"><label for="productPrice">Precio por unidad ($)</label><input id="productPrice" type="number" min="0" step="0.01"></div>
               <div id="kgPriceField" class="hidden"><label for="productKgPrice">Precio por kilo ($)</label><input id="productKgPrice" type="number" min="0" step="0.01"></div>
@@ -345,18 +345,19 @@
     function updatePriceFields() {
       const mode = $("productMode").value;
       $("unitPriceField").classList.toggle("hidden", mode !== "unit");
-      $("kgPriceField").classList.toggle("hidden", !["weight","portion"].includes(mode));
+      $("kgPriceField").classList.toggle("hidden", !["weight","weight_piece","portion"].includes(mode));
       $("hundredPriceField").classList.toggle("hidden", mode !== "sliced");
-      $("productUnit").placeholder = mode === "weight" ? "kg, horma, barra, pieza…" : mode === "portion" ? "porción" : mode === "sliced" ? "100 g" : "unidad";
+      $("productUnit").placeholder = mode === "weight" ? "kg, horma, barra, pieza…" : mode === "weight_piece" ? "unidad, pieza…" : mode === "portion" ? "porción" : mode === "sliced" ? "100 g" : "unidad";
       if (!$("productId").value) {
         const defaults = {
           unit:{quantity_stepper:true,quantity_action:"unit"},
-          weight:{quantity_stepper:true,quantity_action:"weighted_piece"},
+          weight:{quantity_stepper:false},
+          weight_piece:{quantity_stepper:true,quantity_action:"weighted_piece"},
           portion:{selectors:[{id:"monto",options:[{value:"1000",label:"$1.000"},{value:"1500",label:"$1.500"},{value:"2000",label:"$2.000"},{value:"2500",label:"$2.500"},{value:"3000",label:"$3.000"},{value:"5000",label:"$5.000"}]},{id:"gramos",options:[{value:"100",label:"100 gr"},{value:"250",label:"250 gr"},{value:"500",label:"500 gr"},{value:"1000",label:"1 kg"}]}]},
           sliced:{selectors:[{id:"fetas_nuevo",options:[{value:"50",label:"50 g"},{value:"100",label:"100 g"},{value:"150",label:"150 g"},{value:"200",label:"200 g"},{value:"250",label:"250 g"},{value:"300",label:"300 g"},{value:"400",label:"400 g"},{value:"500",label:"500 g"}]}]}
         };
         $("productConfig").value=JSON.stringify(defaults[mode],null,2);
-        $("productUnit").value=mode==="weight"?"kg":mode==="portion"?"porción":mode==="sliced"?"100 g":"unidad";
+        $("productUnit").value=mode==="weight"?"kg":mode==="weight_piece"?"unidad":mode==="portion"?"porción":mode==="sliced"?"100 g":"unidad";
       }
     }
     function fillCategoryOptions(selectedId) {
@@ -386,7 +387,7 @@
       $("productFormTitle").textContent = product ? "Editar producto" : "Nuevo producto";
       $("productName").value = product?.name || "";
       $("productDescription").value = product?.description || "";
-      $("productMode").value = product?.sale_mode || "unit";
+      $("productMode").value = product?.sale_mode === "weight" && product?.selection_config?.quantity_action === "weighted_piece" ? "weight_piece" : (product?.sale_mode || "unit");
       $("productUnit").value = productUnitLabel(product);
       $("productPrice").value = product?.price ?? (product?.sale_mode === "unit" ? 0 : "");
       $("productKgPrice").value = product?.price_per_kg ?? "";
@@ -583,7 +584,7 @@
         const left=document.createElement("div");left.className="item-main";
         const strong=document.createElement("strong");strong.textContent=p.name;
         const category=categoriesCache.find(c=>c.id===p.category_id)?.name || "Sin categoría";
-        const detail=p.sale_mode==="weight" || p.sale_mode==="portion" ? money(p.price_per_kg)+" / kg" : p.sale_mode==="sliced" ? money(p.price_per_100g)+" / 100 g" : money(p.price);
+        const detail=p.sale_mode==="weight" && p.selection_config?.quantity_action==="weighted_piece" ? money(p.price_per_kg)+" / kg · unidad con peso variable" : p.sale_mode==="weight" || p.sale_mode==="portion" ? money(p.price_per_kg)+" / kg" : p.sale_mode==="sliced" ? money(p.price_per_100g)+" / 100 g" : money(p.price);
         const small=document.createElement("small");small.textContent=category+" · "+productUnitLabel(p)+" · "+detail;
         left.append(strong,small);
         const actions=document.createElement("div");actions.style.display="flex";actions.style.alignItems="center";actions.style.gap="7px";
@@ -599,7 +600,9 @@
         let config;
         try { config=JSON.parse($("productConfig").value || "{}"); }
         catch(e) { throw new Error("La configuración avanzada no tiene un formato JSON válido."); }
-        const mode=$("productMode").value;
+        const selectedMode=$("productMode").value;
+        const mode=selectedMode==="weight_piece"?"weight":selectedMode;
+        if(selectedMode==="weight_piece") config={...config,quantity_stepper:true,quantity_action:"weighted_piece",selectors:[]};
         const payload={
           category_id:$("productCategory").value,
           name:$("productName").value.trim(),
