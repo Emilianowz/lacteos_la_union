@@ -1050,7 +1050,8 @@ function verificarSeleccion() {
     const hayPorcion = Object.keys(seleccionesPorcion).length > 0 || quesoAzul !== null;
     const hayFetas = Object.keys(seleccionesFetas).length > 0;
     
-    const hayAlgoSeleccionado = hayCantidadFija || haySeleccionPeso || hayCantidadPeso || hayPorcion || hayFetas;
+    const hayDinamicos = Object.values(productosDinamicos).some(e => e.quantity > 0 || !!e.selection || Number(e.kg) > 0);
+    const hayAlgoSeleccionado = hayCantidadFija || haySeleccionPeso || hayCantidadPeso || hayPorcion || hayFetas || hayDinamicos;
     
     document.getElementById('btnPedir').disabled = !catalogoCargado || !hayAlgoSeleccionado;
 }
@@ -1060,6 +1061,7 @@ function calcularTotal() {
     for (const clave in cantidades) {
         total += cantidades[clave] * PRECIOS[clave];
     }
+    itemsDinamicosDelPedido().forEach(item => { if (item.line_total !== null && item.line_total !== undefined) total += Number(item.line_total) || 0; });
     for (const clave in seleccionesFetas) total += seleccionesFetas[clave].importe;
     document.getElementById('total').textContent = formatoMoneda(total);
     verificarSeleccion();
@@ -1335,6 +1337,13 @@ function actualizarResumen() {
             lista.appendChild(div);
         }
     }
+    itemsDinamicosDelPedido().forEach(item => {
+        const div=document.createElement('div'); div.className='res-item'+(item.selection_details?.pending_weighing?' peso':'');
+        const cantidad=item.sale_mode_snapshot==='sliced' ? ' ('+item.selection_details.grams+' g)' : item.sale_mode_snapshot==='unit' ? ' ('+item.quantity+' x)' : '';
+        div.textContent=''; const left=document.createElement('span'); left.textContent=item.product_name_snapshot+cantidad;
+        const right=document.createElement('span'); right.textContent=item.line_total==null?'A cobrar al pesar':formatoMoneda(item.line_total);
+        div.append(left,right); lista.appendChild(div);
+    });
     
     const filaEnvio = document.getElementById('fila-envio');
     const filaDescuento = document.getElementById('fila-descuento');
@@ -1621,27 +1630,214 @@ function actualizarSelectoresCatalogo(tarjeta, producto) {
     });
 }
 
+
+const productosDinamicos = Object.create(null);
+
+function normalizarCategoriaCatalogo(valor) {
+    return String(valor || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function obtenerSeccionCategoria(categoria) {
+    const nombre = categoria?.name || 'Otros productos';
+    const mapa = {
+        'quesos-blandos':'quesos-blandos',
+        'quesos-semiduros':'quesos-semiduros',
+        'quesos-por-porcion':'quesos-porcion',
+        'quesos-porcion':'quesos-porcion',
+        'ralladitos':'ralladitos',
+        'untables-y-ddl':'untables',
+        'yogures-y-leches':'yogures-leches',
+        'cremas-y-mantecas':'cremas-mantecas',
+        'fiambres-piamontesa':'fiambres',
+        'cortado-en-fetas':'cortado-fetas',
+        'moriconi':'moriconi',
+        'snacks-crunch':'snacks-crunch'
+    };
+    const normalizada = normalizarCategoriaCatalogo(nombre);
+    const id = mapa[normalizada] || ('categoria-' + normalizada);
+    let seccion = document.getElementById(id);
+    if (!seccion) {
+        seccion = document.createElement('div');
+        seccion.className = 'seccion';
+        seccion.id = id;
+        const titulo = document.createElement('h2');
+        titulo.textContent = nombre;
+        seccion.appendChild(titulo);
+        document.querySelector('.contenedor')?.appendChild(seccion);
+    }
+    const menu = document.querySelector('.categorias');
+    if (menu && !menu.querySelector('[data-category-target="' + id + '"]')) {
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'cat-btn';
+        boton.dataset.categoryTarget = id;
+        boton.textContent = nombre;
+        boton.addEventListener('click', () => irACategoria(id, boton));
+        menu.appendChild(boton);
+    }
+    return seccion;
+}
+
+function actualizarTarjetaDinamica(producto, categoria) {
+    const id = String(producto.id);
+    const clave = 'dinamico:' + id;
+    let estado = productosDinamicos[id];
+    let tarjeta = document.querySelector('[data-dynamic-product-id="' + id + '"]');
+    if (!estado) estado = productosDinamicos[id] = { quantity: 0, selection: '', kg: '' };
+    estado.product = producto;
+    if (!tarjeta) {
+        tarjeta = document.createElement('div');
+        tarjeta.className = 'producto';
+        tarjeta.dataset.dynamicProductId = id;
+        const nombre = document.createElement('div'); nombre.className = 'prod-nombre';
+        const precio = document.createElement('div'); precio.className = 'prod-precio';
+        const fila = document.createElement('div'); fila.className = 'fila-inferior';
+        tarjeta.append(nombre, precio, fila);
+        const config = producto.selection_config || {};
+        const selectors = Array.isArray(config.selectors) ? config.selectors : [];
+        const modo = producto.sale_mode;
+        if (modo === 'unit' || (modo === 'weight' && config.quantity_stepper)) {
+            const contador = document.createElement('div'); contador.className = 'contador';
+            const menos = document.createElement('button'); menos.type = 'button'; menos.className = 'btn-cant'; menos.textContent = '−';
+            const valor = document.createElement('span'); valor.className = 'cant-num'; valor.textContent = '0';
+            const mas = document.createElement('button'); mas.type = 'button'; mas.className = 'btn-cant'; mas.textContent = '+';
+            menos.addEventListener('click', () => cambiarCantidadDinamica(id, -1));
+            mas.addEventListener('click', () => cambiarCantidadDinamica(id, 1));
+            contador.append(mas, valor, menos); fila.appendChild(contador);
+        } else if ((modo === 'weight' || modo === 'portion' || modo === 'sliced') && selectors.length) {
+            selectors.forEach((selector, index) => {
+                const grupo = document.createElement('div'); grupo.className = 'selector-grupo';
+                const label = document.createElement('label');
+                label.textContent = modo === 'portion' ? (index === 0 ? 'Por monto estimado' : index === 1 ? 'Por peso estimado' : 'Por horma / unidad') : modo === 'sliced' ? 'Cantidad' : 'Presentación';
+                const select = document.createElement('select');
+                select.dataset.dynamicSelector = String(index);
+                select.addEventListener('change', () => cambiarSeleccionDinamica(id, index, select.value));
+                const vacio = document.createElement('option'); vacio.value = ''; vacio.textContent = '— Seleccioná una opción —'; select.appendChild(vacio);
+                (selector.options || []).forEach(op => {
+                    const option = document.createElement('option'); option.value = String(op.value); option.textContent = op.label || String(op.value); select.appendChild(option);
+                });
+                grupo.append(label, select); fila.appendChild(grupo);
+            });
+            const estadoTexto = document.createElement('div'); estadoTexto.className = 'seleccionado-texto'; estadoTexto.dataset.dynamicFeedback = '1'; tarjeta.appendChild(estadoTexto);
+        } else if (modo === 'weight') {
+            const grupo = document.createElement('div'); grupo.className = 'selector-grupo';
+            const label = document.createElement('label'); label.textContent = 'Peso estimado (kg)';
+            const input = document.createElement('input'); input.type = 'number'; input.min = '0.001'; input.step = '0.001'; input.placeholder = 'Ej.: 1.250';
+            input.addEventListener('input', () => { estado.kg = input.value; calcularTotal(); });
+            grupo.append(label, input); fila.appendChild(grupo);
+        } else if (modo === 'sliced') {
+            const grupo = document.createElement('div'); grupo.className = 'selector-grupo';
+            const label = document.createElement('label'); label.textContent = 'Cantidad';
+            const select = document.createElement('select'); select.dataset.dynamicSelector = '0';
+            const vacio = document.createElement('option'); vacio.value = ''; vacio.textContent = '— Seleccioná gramos —'; select.appendChild(vacio);
+            [50,100,150,200,250,300,400,500].forEach(g => { const op=document.createElement('option'); op.value=String(g); op.textContent=g+' g'; select.appendChild(op); });
+            select.addEventListener('change', () => cambiarSeleccionDinamica(id, 0, select.value));
+            grupo.append(label, select); fila.appendChild(grupo);
+        } else if (modo === 'portion') {
+            const feedback = document.createElement('div'); feedback.className = 'seleccionado-texto'; feedback.dataset.dynamicFeedback = '1'; tarjeta.appendChild(feedback);
+            const input = document.createElement('input'); input.type = 'number'; input.min = '1'; input.placeholder = 'Importe estimado ($)';
+            input.addEventListener('input', () => { estado.selection = input.value ? '0:' + input.value : ''; calcularTotal(); });
+            fila.appendChild(input);
+        } else {
+            const info = document.createElement('span'); info.className = 'seleccionado-texto'; info.textContent = 'Configuración de compra no disponible'; fila.appendChild(info);
+        }
+    }
+    const section = obtenerSeccionCategoria(categoria);
+    section.appendChild(tarjeta);
+    tarjeta.querySelector('.prod-nombre').textContent = producto.name;
+    const price = tarjeta.querySelector('.prod-precio');
+    if (producto.sale_mode === 'sliced') price.textContent = formatoMoneda(producto.price_per_100g) + ' los 100 gramos';
+    else if (producto.sale_mode === 'weight' || producto.sale_mode === 'portion') price.textContent = formatoMoneda(producto.price_per_kg) + ' / kg — Se cobra al pesar';
+    else price.textContent = formatoMoneda(producto.price);
+    const contador = tarjeta.querySelector('.cant-num');
+    if (contador) contador.textContent = String(estado.quantity);
+    const selects = tarjeta.querySelectorAll('select[data-dynamic-selector]');
+    selects.forEach((select, index) => { select.value = estado.selection && estado.selection.startsWith(index + ':') ? estado.selection.slice(2) : ''; });
+    const feedback = tarjeta.querySelector('[data-dynamic-feedback]');
+    if (feedback) feedback.textContent = estado.selection ? '✓ Opción seleccionada' : '';
+    tarjeta.style.display = '';
+    return clave;
+}
+
+function cambiarCantidadDinamica(id, delta) {
+    const estado = productosDinamicos[id];
+    if (!estado) return;
+    estado.quantity = Math.max(0, (Number(estado.quantity) || 0) + delta);
+    const tarjeta = document.querySelector('[data-dynamic-product-id="' + id + '"]');
+    const contador = tarjeta?.querySelector('.cant-num');
+    if (contador) contador.textContent = String(estado.quantity);
+    calcularTotal();
+}
+
+function cambiarSeleccionDinamica(id, index, value) {
+    const estado = productosDinamicos[id];
+    if (!estado) return;
+    estado.selection = value ? index + ':' + value : '';
+    const tarjeta = document.querySelector('[data-dynamic-product-id="' + id + '"]');
+    if (estado.product.sale_mode === 'portion') {
+        tarjeta?.querySelectorAll('select[data-dynamic-selector]').forEach((select, i) => { if (i !== index) select.value = ''; });
+    }
+    const feedback = tarjeta?.querySelector('[data-dynamic-feedback]');
+    if (feedback) feedback.textContent = value ? '✓ Opción seleccionada' : '';
+    calcularTotal();
+}
+
+function itemsDinamicosDelPedido() {
+    const items = [];
+    Object.entries(productosDinamicos).forEach(([id, estado]) => {
+        const p = estado.product;
+        if (!p || !p.active) return;
+        const selectors = Array.isArray(p.selection_config?.selectors) ? p.selection_config.selectors : [];
+        const modo = p.sale_mode;
+        if (modo === 'unit' && estado.quantity > 0) {
+            items.push({product_id:p.id,product_name_snapshot:p.name,sale_mode_snapshot:'unit',unit_label_snapshot:p.unit_label||'unidad',quantity:estado.quantity,unit_price_snapshot:Number(p.price)||0,line_total:estado.quantity*(Number(p.price)||0),selection_details:{}});
+        } else if (modo === 'weight' && p.selection_config?.quantity_stepper && estado.quantity > 0) {
+            items.push({product_id:p.id,product_name_snapshot:p.name,sale_mode_snapshot:'weight',unit_label_snapshot:p.unit_label||'pieza',quantity:estado.quantity,unit_price_snapshot:null,line_total:null,selection_details:{selection_label:'Pieza completa',pending_weighing:true}});
+        } else if (modo === 'weight' && selectors.length && estado.selection) {
+            const [idx,val]=estado.selection.split(':'); const option=selectors[Number(idx)]?.options?.find(o=>String(o.value)===val);
+            items.push({product_id:p.id,product_name_snapshot:p.name,sale_mode_snapshot:'weight',unit_label_snapshot:p.unit_label||'pieza',quantity:parseFloat(val)||1,unit_price_snapshot:null,line_total:null,selection_details:{selection_value:val,selection_label:option?.label||val,pending_weighing:true}});
+        } else if (modo === 'weight' && Number(estado.kg)>0) {
+            const qty=Number(estado.kg), price=Number(p.price_per_kg)||0;
+            items.push({product_id:p.id,product_name_snapshot:p.name,sale_mode_snapshot:'weight',unit_label_snapshot:'kg',quantity:qty,unit_price_snapshot:price,line_total:qty*price,selection_details:{}});
+        } else if (modo === 'portion' && estado.selection) {
+            const [idx,val]=estado.selection.split(':'); const option=selectors[Number(idx)]?.options?.find(o=>String(o.value)===val);
+            const amount=Number(val), grams=Number(val);
+            const details={selection_type:Number(idx)===0?'monto':Number(idx)===1?'peso':'horma',selection_label:option?.label||val,pending_weighing:true,estimated_amount:Number(idx)===0?amount:null,estimated_grams:Number(idx)===1?grams:null,horm_fraction:Number(idx)>=2?val:null};
+            items.push({product_id:p.id,product_name_snapshot:p.name,sale_mode_snapshot:'portion',unit_label_snapshot:p.unit_label||'porción',quantity:1,unit_price_snapshot:null,line_total:null,selection_details:details});
+        } else if (modo === 'sliced' && estado.selection) {
+            const [idx,val]=estado.selection.split(':'); const grams=Number(val),price=Number(p.price_per_100g)||0;
+            if (grams>0) items.push({product_id:p.id,product_name_snapshot:p.name,sale_mode_snapshot:'sliced',unit_label_snapshot:'100 g',quantity:grams/100,unit_price_snapshot:price,line_total:(grams/100)*price,selection_details:{grams}});
+        }
+    });
+    return items;
+}
+
 async function cargarCatalogoPublico() {
     const boton = document.getElementById('btnPedir');
     if (boton) boton.disabled = true;
     document.querySelectorAll('.producto button, .producto select').forEach(control => control.disabled = true);
     try {
-        const respuesta = await fetch(
-            SUPABASE_URL_PUBLICO + '/rest/v1/products?select=id,sku,name,sale_mode,unit_label,price,price_per_kg,price_per_100g,selection_config,active,sort_order&active=eq.true&order=sort_order.asc',
-            { headers: { apikey: SUPABASE_KEY_PUBLICA } }
-        );
-        if (!respuesta.ok) throw new Error('HTTP ' + respuesta.status);
+        const [respuesta, respuestaCategorias] = await Promise.all([
+            fetch(SUPABASE_URL_PUBLICO + '/rest/v1/products?select=id,sku,name,category_id,sale_mode,unit_label,price,price_per_kg,price_per_100g,selection_config,active,sort_order&active=eq.true&order=sort_order.asc', { headers: { apikey: SUPABASE_KEY_PUBLICA } }),
+            fetch(SUPABASE_URL_PUBLICO + '/rest/v1/categories?select=id,name,active,sort_order&active=eq.true&order=sort_order.asc', { headers: { apikey: SUPABASE_KEY_PUBLICA } })
+        ]);
+        if (!respuesta.ok) throw new Error('No se pudieron consultar los productos (HTTP ' + respuesta.status + ').');
+        if (!respuestaCategorias.ok) throw new Error('No se pudieron consultar las categorías (HTTP ' + respuestaCategorias.status + ').');
         const productos = await respuesta.json();
-        if (!Array.isArray(productos) || !productos.length) throw new Error('El catálogo no devolvió productos activos.');
-
+        const categorias = await respuestaCategorias.json();
+        if (!Array.isArray(productos)) throw new Error('El catálogo de productos no devolvió una lista válida.');
+        if (!Array.isArray(categorias)) throw new Error('El catálogo de categorías no devolvió una lista válida.');
+        const categoriasPorId = Object.fromEntries(categorias.map(c => [c.id,c]));
+        const categoriasActivas = new Set(categorias.map(c => c.id));
+        const productosVisibles = productos.filter(p => p.category_id && categoriasActivas.has(p.category_id));
         const porClave = Object.create(null);
-        productos.forEach(producto => {
+        productosVisibles.forEach(producto => {
             const clave = claveCatalogoDesdeSku(producto.sku, producto.sale_mode);
             if (clave) porClave[clave] = producto;
         });
 
         const clavesMostradas = new Set();
-        document.querySelectorAll('.producto').forEach(tarjeta => {
+        document.querySelectorAll('.producto:not([data-dynamic-product-id])').forEach(tarjeta => {
             const clave = claveCatalogoDesdeTarjeta(tarjeta);
             const producto = clave ? porClave[clave] : null;
             if (!producto) {
@@ -1649,6 +1845,8 @@ async function cargarCatalogoPublico() {
                 return;
             }
             tarjeta.style.display = '';
+            const categoria = categoriasPorId[producto.category_id];
+            if (categoria) obtenerSeccionCategoria(categoria).appendChild(tarjeta);
             clavesMostradas.add(clave);
             PRODUCTOS_CATALOGO[clave] = producto;
             if (producto.sale_mode !== 'sliced') NOMBRES[clave] = producto.name;
@@ -1669,13 +1867,19 @@ async function cargarCatalogoPublico() {
             actualizarSelectoresCatalogo(tarjeta, producto);
         });
 
-        const sinTarjeta = productos.filter(producto => !clavesMostradas.has(claveCatalogoDesdeSku(producto.sku, producto.sale_mode)));
-        if (sinTarjeta.length) console.warn('Productos activos aún sin tarjeta en la tienda:', sinTarjeta.map(p => p.sku));
+        const sinTarjeta = productosVisibles.filter(producto => !clavesMostradas.has(claveCatalogoDesdeSku(producto.sku, producto.sale_mode)));
+        if (sinTarjeta.length) console.info('Productos nuevos generados desde Gestión:', sinTarjeta.map(p => p.sku));
+        sinTarjeta.forEach(producto => actualizarTarjetaDinamica(producto, categoriasPorId[producto.category_id]));
+        const idsDinamicosActivos = new Set(sinTarjeta.map(p => String(p.id)));
+        document.querySelectorAll('[data-dynamic-product-id]').forEach(tarjeta => {
+            if (!idsDinamicosActivos.has(tarjeta.dataset.dynamicProductId)) tarjeta.remove();
+        });
         document.querySelectorAll('.producto').forEach(tarjeta => {
             if (tarjeta.style.display !== 'none') tarjeta.querySelectorAll('button, select').forEach(control => control.disabled = false);
         });
         catalogoCargado = true;
         verificarSeleccion();
+        calcularTotal();
     } catch (error) {
         console.error('No se pudo cargar el catálogo público desde Supabase:', error);
         catalogoCargado = false;
