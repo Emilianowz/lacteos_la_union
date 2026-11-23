@@ -1882,7 +1882,15 @@ async function cargarCatalogoPublico() {
         sinTarjeta.forEach(producto => actualizarTarjetaDinamica(producto, categoriasPorId[producto.category_id]));
         const idsDinamicosActivos = new Set(sinTarjeta.map(p => String(p.id)));
         document.querySelectorAll('[data-dynamic-product-id]').forEach(tarjeta => {
-            if (!idsDinamicosActivos.has(tarjeta.dataset.dynamicProductId)) tarjeta.remove();
+            if (!idsDinamicosActivos.has(tarjeta.dataset.dynamicProductId)) {
+                tarjeta.remove();
+                const estado = productosDinamicos[tarjeta.dataset.dynamicProductId];
+                if (estado) { estado.product.active = false; estado.quantity = 0; estado.selection = ''; estado.kg = ''; }
+            }
+        });
+        const nombresCategoriasActivas = new Set(categorias.map(c => normalizarCategoriaCatalogo(c.name)));
+        document.querySelectorAll('.categorias .cat-btn').forEach(boton => {
+            boton.hidden = !nombresCategoriasActivas.has(normalizarCategoriaCatalogo(boton.textContent));
         });
         document.querySelectorAll('.producto').forEach(tarjeta => {
             if (tarjeta.style.display !== 'none') tarjeta.querySelectorAll('button, select').forEach(control => control.disabled = false);
