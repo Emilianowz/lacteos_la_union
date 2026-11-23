@@ -1837,6 +1837,7 @@ async function cargarCatalogoPublico() {
         if (!Array.isArray(productos)) throw new Error('El catálogo de productos no devolvió una lista válida.');
         if (!Array.isArray(categorias)) throw new Error('El catálogo de categorías no devolvió una lista válida.');
         const categoriasPorId = Object.fromEntries(categorias.map(c => [c.id,c]));
+        categorias.forEach(categoria => obtenerSeccionCategoria(categoria));
         const categoriasActivas = new Set(categorias.map(c => c.id));
         const productosVisibles = productos.filter(p => p.category_id && categoriasActivas.has(p.category_id));
         const porClave = Object.create(null);
